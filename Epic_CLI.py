@@ -17,10 +17,10 @@ def main():
 @click.option('--password', prompt=True, hide_input=True)
 def auth(username, password):
     """Authenticate with EPIC. Stores auth key in ./bin file"""
-    data = {'username': username, 'password': password}
-    token = post_request(data, "/auth/", "")['token']
+    params = {'username': username, 'password': password}
+    token = post_request(params, "/auth/", "")['token']
     create_conf()
-    with open(DIR+'/conf', 'w+') as f:
+    with open(DIR + '/conf', 'w+') as f:
         f.write(token)
 
 
@@ -90,11 +90,12 @@ def aws_get():
 def aws_list():
     """List all data locations belonging to the user on EPIC"""
     token = get_auth_token()
-    response = get_request('/data/aws/list/', {'Authorization':'Token '+token})
+    response = get_request('/data/aws/list/', {'Authorization': 'Token ' + token})
     print("")
     print("Locations:")
     for i in response:
-        print("- "+i)
+        print("- " + i)
+
 
 @main.group()
 def job():
@@ -104,10 +105,10 @@ def job():
 
 @job.command()
 @click.option('--jobID', default=1, prompt=True)
-def status(jobid):
+def status(job_id):
     """Get job status"""
     token = get_auth_token()
-    response = get_request(url='/batch/job/status/' + str(jobid), headers={'Authorization': 'Token ' + token})
+    response = get_request(url='/batch/job/status/' + str(job_id), headers={'Authorization': 'Token ' + token})
     print("Status " + response['status'])
 
 
@@ -130,31 +131,30 @@ def submit():
 
 
 @job.command()
-def list():
+def list_jobs():
     """List active jobs"""
     token = get_auth_token()
     response = get_request('/batch/job/list/', {'Authorization': 'Token ' + token})
     print("")
     print("Active Jobs:")
     for i in response:
-        print("- "+str(i['id'])+" | Finished? " +str(i['finished']))
+        print("- " + str(i['id']) + " | Finished? " + str(i['finished']))
 
 
 @job.command()
 @click.option('--app', default=1, prompt=True)
-def cluster_list(app):
+def cluster_list(app_id):
     token = get_auth_token()
-    response = get_request('/batch/queue/get/' + str(app), {'Authorization': 'Token ' + token})
+    response = get_request('/batch/queue/get/' + str(app_id), {'Authorization': 'Token ' + token})
     for item in response:
         print("Queue Name: " + item['display_name'] + " | ID: " + str(item['id']))
 
 
 @job.command()
-@click.option('--jobId',default=1,prompt=True)
+@click.option('--jobId', default=1, prompt=True)
 def delete(jobid):
     token = get_auth_token()
-    post_request({'job_id': jobid},'/batch/job/delete/', {'Authorization': 'Token ' + token})
-
+    post_request({'job_id': jobid}, '/batch/job/delete/', {'Authorization': 'Token ' + token})
 
 
 @main.group()
@@ -164,9 +164,9 @@ def app():
 
 
 @app.command()
-def list():
+def list_app():
     token = get_auth_token()
-    response = get_request('/batch/app/list',{'Authorization':'Token '+token})
+    response = get_request('/batch/app/list', {'Authorization': 'Token ' + token})
     print("")
     print("Apps")
     for item in response:
@@ -174,17 +174,17 @@ def list():
 
 
 @app.command()
-@click.option("--appId",default=1,prompt=True)
-def versions(appid):
+@click.option("--appId", default=1, prompt=True)
+def versions(app_id):
     token = get_auth_token()
-    response = get_request('/batch/app/'+str(appid)+'/versions/',{'Authorization': 'Token '+token})
+    response = get_request('/batch/app/' + str(app_id) + '/versions/', {'Authorization': 'Token ' + token})
     for i in response:
-        print("- "+i['version']+":"+str(i['id']))
+        print("- " + i['version'] + ":" + str(i['id']))
 
 
 def get_auth_token():
     try:
-        token = open(DIR+'/conf', 'r').readline()
+        token = open(DIR + '/conf', 'r').readline()
         return token
     except IOError:
         print("Auth token not found")
