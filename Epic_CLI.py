@@ -1,8 +1,10 @@
 import click
+import os
 import requests
 import pyfiglet
 
 BASEURL = "https://epic-qa.zenotech.com/api/v1"
+DIR = os.path.expanduser('~/.epic')
 
 
 @click.group()
@@ -17,8 +19,16 @@ def auth(username, password):
     """Authenticate with EPIC. Stores auth key in ./bin file"""
     data = {'username': username, 'password': password}
     token = post_request(data, "/auth/", "")['token']
-    with open('~/.epic', 'w+') as f:
+    create_conf()
+    with open(DIR+'/conf', 'w+') as f:
         f.write(token)
+
+
+def create_conf():
+    print(DIR)
+    print os.path.exists(DIR)
+    if not os.path.exists(DIR):
+        os.makedirs(DIR)
 
 
 @main.group()
@@ -174,7 +184,7 @@ def versions(appid):
 
 def get_auth_token():
     try:
-        token = open('~/.epic', 'r').readline()
+        token = open(DIR+'/conf', 'r').readline()
         return token
     except IOError:
         print("Auth token not found")
