@@ -19,16 +19,10 @@ def auth(username, password):
     """Authenticate with EPIC. Stores auth key in ./bin file"""
     params = {'username': username, 'password': password}
     token = post_request(params, "/auth/", "")['token']
-    create_conf()
-    with open(DIR + '/conf', 'w+') as f:
-        f.write(token)
-
-
-def create_conf():
-    print(DIR)
-    print os.path.exists(DIR)
     if not os.path.exists(DIR):
         os.makedirs(DIR)
+    with open(DIR + '/conf', 'w+') as f:
+        f.write(token)
 
 
 @main.group()
@@ -104,7 +98,7 @@ def job():
 
 
 @job.command()
-@click.option('--jobID', default=1, prompt=True)
+@click.option('--job_ID', default=1, prompt=True)
 def status(job_id):
     """Get job status"""
     token = get_auth_token()
@@ -142,7 +136,7 @@ def list_jobs():
 
 
 @job.command()
-@click.option('--app', default=1, prompt=True)
+@click.option('--app_id', default=1, prompt=True)
 def cluster_list(app_id):
     token = get_auth_token()
     response = get_request('/batch/queue/get/' + str(app_id), {'Authorization': 'Token ' + token})
@@ -174,7 +168,7 @@ def list_app():
 
 
 @app.command()
-@click.option("--appId", default=1, prompt=True)
+@click.option("--app_Id", default=1, prompt=True)
 def versions(app_id):
     token = get_auth_token()
     response = get_request('/batch/app/' + str(app_id) + '/versions/', {'Authorization': 'Token ' + token})
