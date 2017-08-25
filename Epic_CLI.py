@@ -56,7 +56,7 @@ def team_get():
 
 
 @accounts.command()
-@click.option("--teamPk", prompt=True, default=1)
+@click.option("--teamPk", default=None, type=click.INT)
 @click.pass_context
 def team_set(ctx, teampk):
     """Set your active team role"""
@@ -192,7 +192,11 @@ def get_request(url, headers):
         exit(1)
     else:
         print("Request Complete")
-        return r.json()
+        try:
+            return r.json()
+        except ValueError:
+            return "No Response"
+
 
 
 def post_request(params, url, headers):
@@ -202,4 +206,7 @@ def post_request(params, url, headers):
         exit(1)
     else:
         print("Request Complete")
-        return r.json()
+        try:
+            return r.json()
+        except ValueError:
+            return "No Response"
