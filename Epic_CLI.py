@@ -6,9 +6,9 @@ import boto3
 import botocore
 from re import search
 
-BASEURL = "http://localhost:82/api/v1"
+BASEURL = "https://epic-qa.zenotech.com/api/v1"
 DIR = os.path.expanduser('~/.epic')
-
+  
 
 @click.group()
 def main():
