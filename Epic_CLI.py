@@ -10,6 +10,12 @@ BASEURL = "http://localhost:82/api/v1"
 DIR = os.path.expanduser('~/.epic')
 
 
+def get_request_headers():
+    token = get_auth_token()
+    # TODO: Add setting of X-EPIC-TEAM here
+    return {'Authorization': 'Token ' + token}
+
+
 @click.group()
 def main():
     print(pyfiglet.Figlet().renderText("EPIC by Zenotech"))
@@ -37,8 +43,7 @@ def accounts():
 @accounts.command()
 def aws_get():
     """Get AWS Credentials for current authenticated user"""
-    token = get_auth_token()
-    response = get_request('/accounts/aws/get/', {'Authorization': 'Token ' + token})
+    response = get_request('/accounts/aws/get/', get_request_headers())
     for i in response:
         print(i + ": " + response[i])
 
@@ -46,36 +51,16 @@ def aws_get():
 @accounts.command()
 def aws_create():
     """Create AWS Credentials, if the don't already exist"""
-    token = get_auth_token()
-    get_request('/accounts/aws/create/', {'Authorization': 'Token ' + token})
+    get_request('/accounts/aws/create/', get_request_headers())
 
 
 @accounts.command('list')
 def team_list():
     """ List the User's teams"""
-    token = get_auth_token()
-    response = get_request('/teams/list', {'Authorization': 'Token ' + token})
+    response = get_request('/teams/list', get_request_headers())
     print("Teams: ")
     for k in response:
         print(str(k['team_id']) + ": " + k['name'])
-
-@accounts.command()
-def team_get():
-    """Get the User's current team"""
-    token = get_auth_token()
-    response = get_request('/accounts/team/get/', {'Authorization': 'Token ' + token})
-    print("Current Team: " + str(response))
-
-
-@accounts.command()
-@click.option("--teamPk", default=None, type=click.INT)
-@click.pass_context
-def team_set(ctx, teampk):
-    """Set your active team role"""
-    token = get_auth_token()
-    params = {'teamPk': teampk}
-    post_request(params=params, url='/accounts/team/set/', headers={'Authorization': 'Token ' + token})
-    ctx.invoke(team_get)
 
 
 @main.group()
@@ -87,16 +72,14 @@ def data():
 @data.command()
 def aws_get():
     """Get the ARN for the User's S3 Bucket"""
-    token = get_auth_token()
-    response = get_request('/data/aws/get/', {'Authorization': 'Token ' + token})
+    response = get_request('/data/aws/get/', get_request_headers())
     print("ARN: " + response)
 
 
 @data.command()
 def ls():
     """List all data locations belonging to the user on EPIC"""
-    token = get_auth_token()
-    response = get_request('/data/aws/list/', {'Authorization': 'Token ' + token})
+    response = get_request('/data/aws/list/', get_request_headers())
     print("")
     print("Locations:")
     for i in response:
@@ -104,25 +87,25 @@ def ls():
 
 
 @data.command()
-@click.argument("input" ,type=click.Path())
-@click.option("--destination", prompt=True,default='')
+@click.argument("input", type=click.Path())
+@click.option("--destination", prompt=True, default='')
 @click.pass_context
-def put(ctx,input, destination):
+def put(ctx, input, destination):
     """Put a file into the correct place"""
-    creds = get_request('/accounts/aws/get/', {'Authorization': 'Token ' + get_auth_token()})
+    creds = get_request('/accounts/aws/get/', get_request_headers())
     client = boto3.resource('s3',
                             aws_access_key_id=creds['aws_key_id'],
                             aws_secret_access_key=creds['aws_secret_key'])
-    arn = get_request('/data/aws/get', {'Authorization':'Token '+get_auth_token()})
+    arn = get_request('/data/aws/get', get_request_headers())
     print(arn)
     try:
-        bucket = search(r'[a-z-]+/',arn).group(0).rstrip('/')
-        key = search(r'\d{2,}',arn.lstrip('arn:aws:s3:::')).group(0)
-        print(bucket,key)
+        bucket = search(r'[a-z-]+/', arn).group(0).rstrip('/')
+        key = search(r'\d{2,}', arn.lstrip('arn:aws:s3:::')).group(0)
+        print(bucket, key)
     except IndexError as e:
         print("Bucket Error: "+e.message)
         return
-    client.Bucket(bucket).upload_file(click.format_filename(input),key+destination)
+    client.Bucket(bucket).upload_file(click.format_filename(input), key+destination)
     ctx.invoke(ls)
 
 
@@ -136,15 +119,13 @@ def job():
 @click.option('--job_ID', default=1, prompt=True)
 def status(job_id):
     """Get job status"""
-    token = get_auth_token()
-    response = get_request(url='/batch/job/status/' + str(job_id), headers={'Authorization': 'Token ' + token})
+    response = get_request(url='/batch/job/status/' + str(job_id), headers=get_request_headers())
     print("Status " + response['status'])
 
 
 @job.command()
 def submit():
     """Submit a new job to EPIC"""
-    token = get_auth_token()
     name = str(raw_input("Job Name: "))
     app_id = int(raw_input("App Version ID: "))
     queue_id = int(raw_input("Queue ID: "))
@@ -155,15 +136,14 @@ def submit():
         "queue_id": queue_id,
         "working_dir_id": working_dir_id
     }
-    response = post_request(params, "/batch/job/create/", {'Authorization': 'Token ' + token})
+    response = post_request(params, "/batch/job/create/", get_request_headers())
     print('Submitted, JobID: ' + str(response))
 
 
 @job.command()
 def list_jobs():
     """List active jobs"""
-    token = get_auth_token()
-    response = get_request('/batch/job/list/', {'Authorization': 'Token ' + token})
+    response = get_request('/batch/job/list/', get_request_headers())
     print("")
     print("Active Jobs:")
     for i in response:
@@ -174,8 +154,7 @@ def list_jobs():
 @click.option('--app_id', default=1, prompt=True)
 @click.option('--app_version_id', default=1, prompt=True)
 def cluster_list(app_id, app_version_id):
-    token = get_auth_token()
-    response = get_request('/batch/app/' + str(app_id) + '/' + str(app_version_id) + '/resources/', {'Authorization': 'Token ' + token})
+    response = get_request('/batch/app/' + str(app_id) + '/' + str(app_version_id) + '/resources/', get_request_headers())
     print response
     for item in response:
         print("Queue Name: " + item['display_name'] + " | ID: " + str(item['id']))
@@ -184,8 +163,7 @@ def cluster_list(app_id, app_version_id):
 @job.command()
 @click.option('--jobId', default=1, prompt=True)
 def delete(jobid):
-    token = get_auth_token()
-    post_request({'job_id': jobid}, '/batch/job/delete/', {'Authorization': 'Token ' + token})
+    post_request({'job_id': jobid}, '/batch/job/delete/', get_request_headers())
 
 
 @main.group()
@@ -196,8 +174,7 @@ def app():
 
 @app.command('list')
 def list_app():
-    token = get_auth_token()
-    response = get_request('/batch/app/list', {'Authorization': 'Token ' + token})
+    response = get_request('/batch/app/list', get_request_headers())
     print("")
     print("Apps")
     for item in response:
@@ -207,8 +184,7 @@ def list_app():
 @app.command()
 @click.option("--app_id", default=1, prompt=True)
 def versions(app_id):
-    token = get_auth_token()
-    response = get_request('/batch/app/' + str(app_id) + '/versions/', {'Authorization': 'Token ' + token})
+    response = get_request('/batch/app/' + str(app_id) + '/versions/', get_request_headers())
     for i in response:
         print("- " + i['version'] + ":" + str(i['id']))
 
