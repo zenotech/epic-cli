@@ -7,7 +7,8 @@ setup(
     install_requires=[
         'Click',
         'requests',
-        'pyfiglet'
+        'pyfiglet',
+        'boto3'
     ],
     entry_points='''
         [console_scripts]

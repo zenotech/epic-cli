@@ -2,8 +2,11 @@ import click
 import os
 import requests
 import pyfiglet
+import boto3
+import botocore
+from re import search
 
-BASEURL = "https://epic-qa.zenotech.com/api/v1"
+BASEURL = "http://localhost:82/api/v1"
 DIR = os.path.expanduser('~/.epic')
 
 
@@ -81,7 +84,7 @@ def aws_get():
 
 
 @data.command()
-def aws_list():
+def ls():
     """List all data locations belonging to the user on EPIC"""
     token = get_auth_token()
     response = get_request('/data/aws/list/', {'Authorization': 'Token ' + token})
@@ -89,6 +92,29 @@ def aws_list():
     print("Locations:")
     for i in response:
         print("- " + i)
+
+
+@data.command()
+@click.argument("input" ,type=click.Path())
+@click.option("--destination", prompt=True,default='')
+@click.pass_context
+def put(ctx,input, destination):
+    """Put a file into the correct place"""
+    creds = get_request('/accounts/aws/get/', {'Authorization': 'Token ' + get_auth_token()})
+    client = boto3.resource('s3',
+                            aws_access_key_id=creds['aws_key_id'],
+                            aws_secret_access_key=creds['aws_secret_key'])
+    arn = get_request('/data/aws/get', {'Authorization':'Token '+get_auth_token()})
+    print(arn)
+    try:
+        bucket = search(r'[a-z-]+/',arn).group(0).rstrip('/')
+        key = search(r'\d{2,}',arn.lstrip('arn:aws:s3:::')).group(0)
+        print(bucket,key)
+    except IndexError as e:
+        print("Bucket Error: "+e.message)
+        return
+    client.Bucket(bucket).upload_file(click.format_filename(input),key+destination)
+    ctx.invoke(ls)
 
 
 @main.group()

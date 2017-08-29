@@ -1,4 +1,4 @@
-pyfiglet
-requests
-Click
+pyfiglet==0.7.5
+requests==2.18.4
+Click==6.7
 boto3
