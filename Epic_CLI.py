@@ -146,7 +146,7 @@ def submit():
     """Submit a new job to EPIC"""
     token = get_auth_token()
     name = str(raw_input("Job Name: "))
-    app_id = int(raw_input("App ID: "))
+    app_id = int(raw_input("App Version ID: "))
     queue_id = int(raw_input("Queue ID: "))
     working_dir_id = int(raw_input("Base Directory ID:"))
     params = {
@@ -172,9 +172,11 @@ def list_jobs():
 
 @job.command()
 @click.option('--app_id', default=1, prompt=True)
-def cluster_list(app_id):
+@click.option('--app_version_id', default=1, prompt=True)
+def cluster_list(app_id, app_version_id):
     token = get_auth_token()
-    response = get_request('/batch/queue/get/' + str(app_id), {'Authorization': 'Token ' + token})
+    response = get_request('/batch/app/' + str(app_id) + '/' + str(app_version_id) + '/resources/', {'Authorization': 'Token ' + token})
+    print response
     for item in response:
         print("Queue Name: " + item['display_name'] + " | ID: " + str(item['id']))
 
@@ -192,7 +194,7 @@ def app():
     print("App:")
 
 
-@app.command()
+@app.command('list')
 def list_app():
     token = get_auth_token()
     response = get_request('/batch/app/list', {'Authorization': 'Token ' + token})
@@ -203,7 +205,7 @@ def list_app():
 
 
 @app.command()
-@click.option("--app_Id", default=1, prompt=True)
+@click.option("--app_id", default=1, prompt=True)
 def versions(app_id):
     token = get_auth_token()
     response = get_request('/batch/app/' + str(app_id) + '/versions/', {'Authorization': 'Token ' + token})
