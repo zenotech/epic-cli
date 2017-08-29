@@ -50,6 +50,15 @@ def aws_create():
     get_request('/accounts/aws/create/', {'Authorization': 'Token ' + token})
 
 
+@accounts.command('list')
+def team_list():
+    """ List the User's teams"""
+    token = get_auth_token()
+    response = get_request('/teams/list', {'Authorization': 'Token ' + token})
+    print("Teams: ")
+    for k in response:
+        print(str(k['team_id']) + ": " + k['name'])
+
 @accounts.command()
 def team_get():
     """Get the User's current team"""
