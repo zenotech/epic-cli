@@ -8,6 +8,7 @@ from re import search
 
 BASEURL = os.environ.get('EPIC_API_ENDPOINT', "https://epic.zenotech.com/api/v1")
 DIR = os.path.expanduser('~/.epic')
+TEAM = None
 
 def get_request_headers():
     token = get_auth_token()
@@ -20,11 +21,10 @@ def get_request_headers():
 @click.group()
 @click.option('--team',type=int)
 def main(team):
+    global TEAM
     if team is not None:
-        global TEAM
         TEAM = team
     else:
-        global TEAM
         TEAM = None
 
 
@@ -46,6 +46,20 @@ def auth(username, password):
 def accounts():
     """Services for EPIC Account Management"""
     print("Accounts:")
+
+
+@main.group()
+def billing():
+    """ EPIC billing Management """
+    pass
+
+
+@billing.command("projectcodes")
+def list_projectcodes():
+    """Get ProjectCodes for current user or team"""
+    response = get_request('/billing/projectcode/list/', get_request_headers())
+    for i,val in enumerate(response):
+        print(str(i) + ": " + str(val))
 
 
 @accounts.command()
