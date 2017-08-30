@@ -18,13 +18,12 @@ def get_request_headers():
 
 
 @click.group()
-@click.option('--team',type=int)
+@click.option('--team',type=int,help='ID of team to act as (optional)')
 def main(team):
+    global TEAM
     if team is not None:
-        global TEAM
         TEAM = team
     else:
-        global TEAM
         TEAM = None
 
 
@@ -231,6 +230,7 @@ def app():
 
 @app.command('list')
 def list_app():
+    """List apps available on EPIC and their IDs"""
     response = get_request('/batch/app/list', get_request_headers())
     print("")
     print("Apps")
@@ -241,6 +241,7 @@ def list_app():
 @app.command()
 @click.option("--app_id", default=1, prompt=True)
 def versions(app_id):
+    """Given an app ID, list the available versions of it on EPIC"""
     response = get_request('/batch/app/' + str(app_id) + '/versions/', get_request_headers())
     for i in response:
         print("- " + i['version'] + ":" + str(i['id']))
