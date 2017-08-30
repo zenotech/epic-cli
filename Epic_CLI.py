@@ -6,9 +6,9 @@ import boto3
 from botocore import exceptions
 from re import search
 
-BASEURL = "https://epic-qa.zenotech.com/api/v1"
+BASEURL = os.environ.get('EPIC_API_ENDPOINT', "https://epic.zenotech.com/api/v1")
 DIR = os.path.expanduser('~/.epic')
-  
+
 
 def get_request_headers():
     token = get_auth_token()
