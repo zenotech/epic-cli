@@ -9,16 +9,23 @@ from re import search
 BASEURL = os.environ.get('EPIC_API_ENDPOINT', "https://epic.zenotech.com/api/v1")
 DIR = os.path.expanduser('~/.epic')
 
-
 def get_request_headers():
     token = get_auth_token()
-    # TODO: Add setting of X-EPIC-TEAM here     
-    return {'Authorization': 'Token ' + token}
+    return {
+        'Authorization': 'Token ' + token,
+        'X-EPIC-TEAM': str(TEAM)
+    }
 
 
 @click.group()
-def main():
-    pass
+@click.option('--team',type=int)
+def main(team):
+    if team is not None:
+        global TEAM
+        TEAM = team
+    else:
+        global TEAM
+        TEAM = None
 
 
 @main.command()
@@ -142,18 +149,19 @@ def cpd(source, destination):
 @click.argument("source")
 @click.argument("destination")
 @click.pass_context
-def mv(ctx,source,destination):
+def mv(ctx, source, destination):
     """Move a file within EPIC"""
     client = create_boto_client()
-    copy_source={
-        'Bucket':client['bucket'],
-        'Key':client['key']+source
+    copy_source = {
+        'Bucket': client['bucket'],
+        'Key': client['key'] + source
     }
     try:
-        client['client'].Bucket(client['bucket']).copy(copy_source,client['key']+destination)
-        ctx.invoke(rm,filename=source)
+        client['client'].Bucket(client['bucket']).copy(copy_source, client['key'] + destination)
+        ctx.invoke(rm, filename=source)
     except exceptions.ClientError:
         print("Permission denied, is the filepath correct? (Requires a leading /)")
+
 
 @main.group()
 def job():
