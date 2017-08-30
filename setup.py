@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="Epic_CLI",
-    version=0.12,
+    version_command='git describe',
     py_modules=['Epic_CLI'],
     install_requires=[
         'Click',
