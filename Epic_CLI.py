@@ -10,6 +10,7 @@ BASEURL = os.environ.get('EPIC_API_ENDPOINT', "https://epic.zenotech.com/api/v1"
 DIR = os.path.expanduser('~/.epic')
 TEAM = None
 
+
 def get_request_headers():
     token = get_auth_token()
     return {
@@ -19,7 +20,7 @@ def get_request_headers():
 
 
 @click.group()
-@click.option('--team',type=int)
+@click.option('--team', type=int)
 def main(team):
     global TEAM
     if team is not None:
