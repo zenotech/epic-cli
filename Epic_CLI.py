@@ -3,7 +3,7 @@ import os
 import requests
 import pyfiglet
 import boto3
-import botocore
+from botocore import exceptions
 from re import search
 
 BASEURL = "https://epic-qa.zenotech.com/api/v1"
@@ -18,7 +18,7 @@ def get_request_headers():
 
 @click.group()
 def main():
-    print(pyfiglet.Figlet().renderText("EPIC by Zenotech"))
+    pass
 
 
 @main.command()
@@ -26,6 +26,7 @@ def main():
 @click.option('--password', prompt=True, hide_input=True)
 def auth(username, password):
     """Authenticate with EPIC. Stores auth key in ./bin file"""
+    print(pyfiglet.Figlet().renderText("EPIC by Zenotech"))
     params = {'username': username, 'password': password}
     token = post_request(params, "/auth/", "")['token']
     if not os.path.exists(DIR):
@@ -85,29 +86,54 @@ def ls():
     for i in response:
         print("- " + i)
 
+@data.command()
+@click.argument("filename")
+@click.pass_context
+def rm(ctx, filename):
+    """Remove a file from EPIC"""
+    client = create_boto_client()
+    resp = client['client'].Bucket(client['bucket']).delete_objects(
+        Delete={
+            'Objects':[
+                {
+                    'Key':client['key']+filename
+                }
+            ]
+        }
+    )
+    if 'Deleted' in resp:
+        print("Success Deleting")
+        for i in resp['Deleted']:
+            print("Deleted: "+str(i))
+    if 'Errors' in resp:
+        print("Error Deleting")
+        for i in resp['Errors']:
+            print("Error: "+str(i))
+    ctx.invoke(ls)
 
 @data.command()
 @click.argument("input", type=click.Path())
-@click.option("--destination", prompt=True, default='')
+@click.argument("destination", default='')
 @click.pass_context
-def put(ctx, input, destination):
-    """Put a file into the correct place"""
-    creds = get_request('/accounts/aws/get/', get_request_headers())
-    client = boto3.resource('s3',
-                            aws_access_key_id=creds['aws_key_id'],
-                            aws_secret_access_key=creds['aws_secret_key'])
-    arn = get_request('/data/aws/get', get_request_headers())
-    print(arn)
-    try:
-        bucket = search(r'[a-z-]+/', arn).group(0).rstrip('/')
-        key = search(r'\d{2,}', arn.lstrip('arn:aws:s3:::')).group(0)
-        print(bucket, key)
-    except IndexError as e:
-        print("Bucket Error: "+e.message)
-        return
-    client.Bucket(bucket).upload_file(click.format_filename(input), key+destination)
+def cpu(ctx, input, destination):
+    """Copy a file UP to EPIC"""
+    client=create_boto_client()
+    client['client'].Bucket(client['bucket']).upload_file(click.format_filename(input), client['key']+destination)
+    print(client['key']+destination)
     ctx.invoke(ls)
 
+
+@data.command()
+@click.argument("input", type=click.Path())
+@click.argument("destination", default='')
+@click.pass_context
+def cpd(ctx, input, destination):
+    """Copy a file DOWN from EPIC"""
+    client = create_boto_client()
+    try:
+        client['client'].Bucket(client['bucket']).download_file(client['key']+input,destination)
+    except exceptions.ClientError:
+        print("Permission denied, is the filepath correct? (Requires a leading /)")
 
 @main.group()
 def job():
@@ -188,6 +214,22 @@ def versions(app_id):
     for i in response:
         print("- " + i['version'] + ":" + str(i['id']))
 
+
+def create_boto_client():
+    creds = get_request('/accounts/aws/get/', get_request_headers())
+    client = boto3.resource('s3',
+                            aws_access_key_id=creds['aws_key_id'],
+                            aws_secret_access_key=creds['aws_secret_key'])
+    arn = get_request('/data/aws/get', get_request_headers())
+    print(arn)
+    try:
+        bucket = search(r'[a-z-]+/', arn).group(0).rstrip('/')
+        key = search(r'\d{2,}', arn.lstrip('arn:aws:s3:::')).group(0)
+        print(bucket, key)
+    except IndexError as e:
+        print("Bucket Error: " + e.message)
+        return
+    return {'client':client,'bucket':bucket,'key':key}
 
 def get_auth_token():
     try:
