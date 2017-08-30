@@ -114,7 +114,7 @@ def rm(ctx, filename):
 
 
 @data.command()
-@click.argument("input", type=click.Path())
+@click.argument("source", type=click.Path())
 @click.argument("destination", default='')
 @click.pass_context
 def cpu(ctx, source, destination):
@@ -126,7 +126,7 @@ def cpu(ctx, source, destination):
 
 
 @data.command()
-@click.argument("input", type=click.Path())
+@click.argument("source", default='')
 @click.argument("destination", default='')
 @click.pass_context
 def cpd(source, destination):
@@ -137,6 +137,23 @@ def cpd(source, destination):
     except exceptions.ClientError:
         print("Permission denied, is the filepath correct? (Requires a leading /)")
 
+
+@data.command()
+@click.argument("source")
+@click.argument("destination")
+@click.pass_context
+def mv(ctx,source,destination):
+    """Move a file within EPIC"""
+    client = create_boto_client()
+    copy_source={
+        'Bucket':client['bucket'],
+        'Key':client['key']+source
+    }
+    try:
+        client['client'].Bucket(client['bucket']).copy(copy_source,client['key']+destination)
+        ctx.invoke(rm,filename=source)
+    except exceptions.ClientError:
+        print("Permission denied, is the filepath correct? (Requires a leading /)")
 
 @main.group()
 def job():
