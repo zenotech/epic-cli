@@ -8,11 +8,11 @@ from re import search
 
 BASEURL = "https://epic-qa.zenotech.com/api/v1"
 DIR = os.path.expanduser('~/.epic')
-  
+
 
 def get_request_headers():
     token = get_auth_token()
-    # TODO: Add setting of X-EPIC-TEAM here
+    # TODO: Add setting of X-EPIC-TEAM here     
     return {'Authorization': 'Token ' + token}
 
 
@@ -86,6 +86,7 @@ def ls():
     for i in response:
         print("- " + i)
 
+
 @data.command()
 @click.argument("filename")
 @click.pass_context
@@ -94,9 +95,9 @@ def rm(ctx, filename):
     client = create_boto_client()
     resp = client['client'].Bucket(client['bucket']).delete_objects(
         Delete={
-            'Objects':[
+            'Objects': [
                 {
-                    'Key':client['key']+filename
+                    'Key': client['key'] + filename
                 }
             ]
         }
@@ -104,22 +105,23 @@ def rm(ctx, filename):
     if 'Deleted' in resp:
         print("Success Deleting")
         for i in resp['Deleted']:
-            print("Deleted: "+str(i))
+            print("Deleted: " + str(i))
     if 'Errors' in resp:
         print("Error Deleting")
         for i in resp['Errors']:
-            print("Error: "+str(i))
+            print("Error: " + str(i))
     ctx.invoke(ls)
+
 
 @data.command()
 @click.argument("input", type=click.Path())
 @click.argument("destination", default='')
 @click.pass_context
-def cpu(ctx, input, destination):
+def cpu(ctx, source, destination):
     """Copy a file UP to EPIC"""
-    client=create_boto_client()
-    client['client'].Bucket(client['bucket']).upload_file(click.format_filename(input), client['key']+destination)
-    print(client['key']+destination)
+    client = create_boto_client()
+    client['client'].Bucket(client['bucket']).upload_file(click.format_filename(source), client['key'] + destination)
+    print(client['key'] + destination)
     ctx.invoke(ls)
 
 
@@ -127,13 +129,14 @@ def cpu(ctx, input, destination):
 @click.argument("input", type=click.Path())
 @click.argument("destination", default='')
 @click.pass_context
-def cpd(ctx, input, destination):
+def cpd(source, destination):
     """Copy a file DOWN from EPIC"""
     client = create_boto_client()
     try:
-        client['client'].Bucket(client['bucket']).download_file(client['key']+input,destination)
+        client['client'].Bucket(client['bucket']).download_file(client['key'] + source, destination)
     except exceptions.ClientError:
         print("Permission denied, is the filepath correct? (Requires a leading /)")
+
 
 @main.group()
 def job():
@@ -180,7 +183,9 @@ def list_jobs():
 @click.option('--app_id', default=1, prompt=True)
 @click.option('--app_version_id', default=1, prompt=True)
 def cluster_list(app_id, app_version_id):
-    response = get_request('/batch/app/' + str(app_id) + '/' + str(app_version_id) + '/resources/', get_request_headers())
+    """List the clusters available for a given app"""
+    response = get_request('/batch/app/' + str(app_id) + '/' + str(app_version_id) + '/resources/',
+                           get_request_headers())
     print response
     for item in response:
         print("Queue Name: " + item['display_name'] + " | ID: " + str(item['id']))
@@ -189,6 +194,7 @@ def cluster_list(app_id, app_version_id):
 @job.command()
 @click.option('--jobId', default=1, prompt=True)
 def delete(jobid):
+    """Delete a running job"""
     post_request({'job_id': jobid}, '/batch/job/delete/', get_request_headers())
 
 
@@ -229,7 +235,8 @@ def create_boto_client():
     except IndexError as e:
         print("Bucket Error: " + e.message)
         return
-    return {'client':client,'bucket':bucket,'key':key}
+    return {'client': client, 'bucket': bucket, 'key': key}
+
 
 def get_auth_token():
     try:
@@ -251,7 +258,6 @@ def get_request(url, headers):
             return r.json()
         except ValueError:
             return "No Response"
-
 
 
 def post_request(params, url, headers):
