@@ -202,14 +202,14 @@ def status(job_id):
     response = get_request(url='/batch/job/status/' + str(job_id), headers=get_request_headers())
     print("Status " + response['status'])
 
-
+    
 @job.command()
 def submit():
     """Submit a new job to EPIC"""
     name = str(raw_input("Job Name: "))
     app_id = int(raw_input("App Version ID: "))
     queue_id = int(raw_input("Queue ID: "))
-    working_dir_id = int(raw_input("Base Directory ID:"))
+    working_dir_id = str(raw_input("Base Directory: "))
     params = {
         "name": name,
         "app_id": app_id,
