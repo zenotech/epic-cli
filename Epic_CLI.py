@@ -9,6 +9,7 @@ from re import search
 BASEURL = os.environ.get('EPIC_API_ENDPOINT', "https://epic.zenotech.com/api/v1")
 DIR = os.path.expanduser('~/.epic')
 TEAM = None
+PROJECT_CODE = None
 
 
 def get_request_headers():
@@ -19,18 +20,19 @@ def get_request_headers():
         t = None
     return {
         'Authorization': 'Token ' + token,
-        'X-EPIC-TEAM': t
+        'X-EPIC-TEAM': t,
+        'X-EPIC-PROJECTCODE': str(PROJECT_CODE)
     }
 
 
 @click.group()
 @click.option('--team', type=int, help='ID of team to act as (optional)')
-def main(team):
+@click.option('--projectcode', type=int, help='ProjectCode to use when submitting tasks to EPIC. (optional)')
+def main(team, projectcode):
     global TEAM
-    if team is not None:
-        TEAM = team
-    else:
-        TEAM = None
+    global PROJECT_CODE
+    TEAM = team
+    PROJECT_CODE = projectcode
 
 
 @main.command()
@@ -63,7 +65,7 @@ def billing():
 def list_projectcodes():
     """Get ProjectCodes for current user or team"""
     response = get_request('/billing/projectcode/list/', get_request_headers())
-    for i,val in enumerate(response):
+    for i, val in enumerate(response):
         print(str(i) + ": " + str(val))
 
 
