@@ -13,9 +13,13 @@ TEAM = None
 
 def get_request_headers():
     token = get_auth_token()
+    if TEAM is not None:
+        t = str(TEAM)
+    else:
+        t = None
     return {
         'Authorization': 'Token ' + token,
-        'X-EPIC-TEAM': str(TEAM)
+        'X-EPIC-TEAM': t
     }
 
 
@@ -100,9 +104,14 @@ def aws_get():
 
 
 @data.command()
-def ls():
+@click.argument("filepath",required=False,type=str)
+def ls(filepath):
     """List all data locations belonging to the user on EPIC"""
-    response = get_request('/data/aws/list/', get_request_headers())
+    if filepath is not None:
+        params = {'dir':filepath}
+    else:
+        params = None
+    response = get_request('/data/aws/list/', get_request_headers(),params)
     print("")
     print("Locations:")
     for i in response:
@@ -289,8 +298,8 @@ def get_auth_token():
         exit(1)
 
 
-def get_request(url, headers):
-    r = requests.get(url=BASEURL + url, headers=headers)
+def get_request(url, headers,params=None):
+    r = requests.get(url=BASEURL + url, headers=headers,params=params)
     if r.status_code not in range(200, 299):
         print("Request Error: " + r.text)
         exit(1)
