@@ -202,7 +202,7 @@ def status(job_id):
     response = get_request(url='/batch/job/status/' + str(job_id), headers=get_request_headers())
     print("Status " + response['status'])
 
-    
+
 @job.command()
 def submit():
     """Submit a new job to EPIC"""
