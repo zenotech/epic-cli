@@ -8,7 +8,8 @@ setup(
         'Click',
         'requests',
         'pyfiglet',
-        'boto3'
+        'boto3',
+        'botocore'
     ],
     entry_points='''
         [console_scripts]
