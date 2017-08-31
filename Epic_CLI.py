@@ -106,14 +106,14 @@ def aws_get():
 
 
 @data.command()
-@click.argument("filepath",required=False,type=str)
+@click.argument("filepath", required=False, type=str)
 def ls(filepath):
     """List all data locations belonging to the user on EPIC"""
     if filepath is not None:
-        params = {'dir':filepath}
+        params = {'dir': filepath}
     else:
         params = None
-    response = get_request('/data/aws/list/', get_request_headers(),params)
+    response = get_request('/data/aws/list/', get_request_headers(), params)
     print("")
     print("Locations:")
     for i in response:
@@ -300,8 +300,8 @@ def get_auth_token():
         exit(1)
 
 
-def get_request(url, headers,params=None):
-    r = requests.get(url=BASEURL + url, headers=headers,params=params)
+def get_request(url, headers, params=None):
+    r = requests.get(url=BASEURL + url, headers=headers, params=params)
     if r.status_code not in range(200, 299):
         print("Request Error: " + r.text)
         exit(1)
