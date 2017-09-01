@@ -47,12 +47,6 @@ def auth(username, password):
 
 
 @main.group()
-def accounts():
-    """Services for EPIC Account Management"""
-    print("Accounts:")
-
-
-@main.group()
 def billing():
     """ EPIC billing Management """
     pass
@@ -64,6 +58,32 @@ def list_projectcodes():
     response = get_request('/billing/projectcode/list/', get_request_headers())
     for i, val in enumerate(response):
         print(str(i) + ": " + str(val))
+
+
+@main.group()
+def accounts():
+    """Services for EPIC Account Management"""
+    print("Accounts:")
+
+
+@accounts.command()
+def notifications():
+    """List the user's notifications"""
+    notifications = get_request('/accounts/notifications/',get_request_headers())
+    print
+    for notification in notifications:
+        print(notification['message'])
+        print('- '+ notification['long_message']+' ('+notification['message_level']+')')
+        print
+
+@accounts.command()
+def clear():
+    """Clear the user's notifications"""
+    r = requests.delete(BASEURL+'/accounts/notifications/',headers=get_request_headers())
+    if r.status_code != 200:
+        print('Error deleting notifications ' + str(r.status_code))
+    else:
+        print('Notifications Cleared')
 
 
 @accounts.command()
@@ -83,10 +103,24 @@ def aws_create():
 @accounts.command('list')
 def team_list():
     """ List the User's teams"""
-    response = get_request('/teams/list', get_request_headers())
+    response = get_request('/teams/list/', get_request_headers())
     print("Teams: ")
     for k in response:
         print(str(k['team_id']) + ": " + k['name'])
+
+
+@accounts.command()
+@click.option('--name',type=str,prompt=True)
+@click.option('--link_profile',type=bool,prompt=True)
+@click.pass_context
+def team_create(ctx,name,link_profile):
+    post_request({
+        'name':name,
+        'link_profile':link_profile
+    },
+    '/teams/create/',
+    get_request_headers())
+    ctx.invoke(team_list)
 
 
 @main.group()
