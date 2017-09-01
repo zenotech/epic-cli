@@ -13,16 +13,13 @@ PROJECT_CODE = None
 
 
 def get_request_headers():
-    token = get_auth_token()
+    headers = {}
+    headers['Authorization'] = "Token " + get_auth_token()
     if TEAM is not None:
-        t = str(TEAM)
-    else:
-        t = None
-    return {
-        'Authorization': 'Token ' + token,
-        'X-EPIC-TEAM': t,
-        'X-EPIC-PROJECTCODE': str(PROJECT_CODE)
-    }
+        headers['X-EPIC-TEAM'] = str(TEAM)
+    if PROJECT_CODE is not None:
+        headers['X-EPIC-PROJECTCODE'] = str(PROJECT_CODE)
+    return headers
 
 
 @click.group()
@@ -209,12 +206,12 @@ def submit():
     name = str(raw_input("Job Name: "))
     app_id = int(raw_input("App Version ID: "))
     queue_id = int(raw_input("Queue ID: "))
-    working_dir_id = str(raw_input("Base Directory: "))
+    working_dir = str(raw_input("Base Directory: "))
     params = {
         "name": name,
         "app_id": app_id,
         "queue_id": queue_id,
-        "working_dir_id": working_dir_id
+        "working_dir_key": working_dir
     }
     response = post_request(params, "/batch/job/create/", get_request_headers())
     print('Submitted, JobID: ' + str(response))
