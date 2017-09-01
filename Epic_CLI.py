@@ -229,6 +229,14 @@ def list_jobs():
     for i in response:
         print("- " + str(i['id']) + " | Finished? " + str(i['finished']))
 
+@job.command()
+@click.argument('job_ID',default=0)
+@click.pass_context
+def cancel(ctx,job_id):
+    """Cancel a job"""
+    post_request({'pk':job_id},'/batch/job/cancel/',get_request_headers())
+    ctx.invoke(list_jobs)
+
 
 @job.command()
 @click.option('--app_id', default=1, prompt=True)
