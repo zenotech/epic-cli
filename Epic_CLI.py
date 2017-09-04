@@ -26,6 +26,7 @@ def get_request_headers():
 @click.option('--team', type=int, help='ID of team to act as (optional)')
 @click.option('--projectcode', type=int, help='ProjectCode to use when submitting tasks to EPIC. (optional)')
 def main(team, projectcode):
+    """CLI for communicating with the EPIC REST API. Begin by running Epic_CLI auth"""
     global TEAM
     global PROJECT_CODE
     TEAM = team
