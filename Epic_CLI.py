@@ -6,15 +6,14 @@ import boto3
 from botocore import exceptions
 from re import search
 
-BASEURL = os.environ.get('EPIC_API_ENDPOINT', "https://epic.zenotech.com/api/v1")
+BASE_URL = os.environ.get('EPIC_API_ENDPOINT', "https://epic.zenotech.com/api/v1")
 DIR = os.path.expanduser('~/.epic')
 TEAM = None
 PROJECT_CODE = None
 
 
 def get_request_headers():
-    headers = {}
-    headers['Authorization'] = "Token " + get_auth_token()
+    headers = {'Authorization': "Token " + get_auth_token()}
     if TEAM is not None:
         headers['X-EPIC-TEAM'] = str(TEAM)
     if PROJECT_CODE is not None:
@@ -71,17 +70,18 @@ def accounts():
 @accounts.command()
 def notifications():
     """List the user's notifications"""
-    notifications = get_request('/accounts/notifications/',get_request_headers())
+    response = get_request('/accounts/notifications/', get_request_headers())
     print
-    for notification in notifications:
+    for notification in response:
         print(notification['message'])
-        print('- '+ notification['long_message']+' ('+notification['message_level']+')')
+        print('- ' + notification['long_message'] + ' (' + notification['message_level'] + ')')
         print
+
 
 @accounts.command()
 def clear():
     """Clear the user's notifications"""
-    r = requests.delete(BASEURL+'/accounts/notifications/',headers=get_request_headers())
+    r = requests.delete(BASE_URL + '/accounts/notifications/', headers=get_request_headers())
     if r.status_code != 200:
         print('Error deleting notifications ' + str(r.status_code))
     else:
@@ -112,17 +112,17 @@ def team_list():
 
 
 @accounts.command()
-@click.option('--name',type=str,prompt=True)
-@click.option('--link_profile',type=bool,prompt=True)
+@click.option('--name', type=str, prompt=True)
+@click.option('--link_profile', type=bool, prompt=True)
 @click.pass_context
-def team_create(ctx,name,link_profile):
+def team_create(ctx, name, link_profile):
     """Create a new EPIC team and assume the admin role"""
     post_request({
-        'name':name,
-        'link_profile':link_profile
+        'name': name,
+        'link_profile': link_profile
     },
-    '/teams/create/',
-    get_request_headers())
+        '/teams/create/',
+        get_request_headers())
     ctx.invoke(team_list)
 
 
@@ -240,16 +240,15 @@ def status(job_id):
 @job.command()
 def queues():
     """List current status of available queues"""
-    response = get_request(url='/batch/queues/',headers=get_request_headers())
+    response = get_request(url='/batch/queues/', headers=get_request_headers())
     print("")
     print("Available Queues:")
     for queue in response:
-        print("- " + queue["cluster_name"] + ": " + queue['name'] + " ("+str(queue['id'])+")")
-        print("    - " + str(queue['max_cores']) +" cores /"+ str(queue['idle_cores'])+" available.")
-        print("    - RAM: " + str(queue['ram'])+"GB")
+        print("- " + queue["cluster_name"] + ": " + queue['name'] + " (" + str(queue['id']) + ")")
+        print("    - " + str(queue['max_cores']) + " cores /" + str(queue['idle_cores']) + " available.")
+        print("    - RAM: " + str(queue['ram']) + "GB")
         print("    - Price: " + queue['price'] + " per core hour")
         print("")
-
 
 
 @job.command()
@@ -278,12 +277,13 @@ def list_jobs():
     for i in response:
         print("- " + str(i['id']) + " | Finished? " + str(i['finished']))
 
+
 @job.command()
-@click.argument('job_ID',default=0)
+@click.argument('job_ID', default=0)
 @click.pass_context
-def cancel(ctx,job_id):
+def cancel(ctx, job_id):
     """Cancel a job"""
-    post_request({'pk':job_id},'/batch/job/cancel/',get_request_headers())
+    post_request({'pk': job_id}, '/batch/job/cancel/', get_request_headers())
     ctx.invoke(list_jobs)
 
 
@@ -336,7 +336,7 @@ def create_boto_client():
     client = boto3.resource('s3',
                             aws_access_key_id=creds['aws_key_id'],
                             aws_secret_access_key=creds['aws_secret_key'])
-    arn = get_request('/data/aws/get', get_request_headers())
+    arn = get_request('/data/aws/ge t', get_request_headers())
     print(arn)
     try:
         bucket = search(r'[a-z-]+/', arn).group(0).rstrip('/')
@@ -358,7 +358,7 @@ def get_auth_token():
 
 
 def get_request(url, headers, params=None):
-    r = requests.get(url=BASEURL + url, headers=headers, params=params)
+    r = requests.get(url=BASE_URL + url, headers=headers, params=params)
     if r.status_code not in range(200, 299):
         print("Request Error: " + r.text)
         exit(1)
@@ -371,7 +371,7 @@ def get_request(url, headers, params=None):
 
 
 def post_request(params, url, headers):
-    r = requests.post(json=params, url=BASEURL + url, headers=headers)
+    r = requests.post(json=params, url=BASE_URL + url, headers=headers)
     if r.status_code not in range(200, 299):
         print("Request Error: " + r.text)
         exit(1)
