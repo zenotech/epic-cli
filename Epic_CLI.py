@@ -55,6 +55,7 @@ def billing():
 @billing.command("projectcodes")
 def list_projectcodes():
     """Get ProjectCodes for current user or team"""
+    print("Project Codes:")
     response = get_request('/billing/projectcode/list/', get_request_headers())
     for i, val in enumerate(response):
         print(str(i) + ": " + str(val))
@@ -114,6 +115,7 @@ def team_list():
 @click.option('--link_profile',type=bool,prompt=True)
 @click.pass_context
 def team_create(ctx,name,link_profile):
+    """Create a new EPIC team and assume the admin role"""
     post_request({
         'name':name,
         'link_profile':link_profile
@@ -232,6 +234,21 @@ def status(job_id):
     """Get job status"""
     response = get_request(url='/batch/job/status/' + str(job_id), headers=get_request_headers())
     print("Status " + response['status'])
+
+
+@job.command()
+def queues():
+    """List current status of available queues"""
+    response = get_request(url='/batch/queues/',headers=get_request_headers())
+    print("")
+    print("Available Queues:")
+    for queue in response:
+        print("- " + queue["cluster_name"] + ": " + queue['name'] + " ("+str(queue['id'])+")")
+        print("    - " + str(queue['max_cores']) +" cores /"+ str(queue['idle_cores'])+" available.")
+        print("    - RAM: " + str(queue['ram'])+"GB")
+        print("    - Price: " + queue['price'] + " per core hour")
+        print("")
+
 
 
 @job.command()
