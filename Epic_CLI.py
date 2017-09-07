@@ -99,7 +99,9 @@ def aws_get():
 @accounts.command()
 def aws_create():
     """Create AWS Credentials, if the don't already exist"""
-    get_request('/accounts/aws/create/', get_request_headers())
+    response = post_request('/accounts/aws/create/', get_request_headers())
+    for i in response:
+        print(i + ": " + response[i])
 
 
 @accounts.command('list')
