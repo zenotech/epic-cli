@@ -3,4 +3,8 @@
 
 Epic_CLI\.egg-info/
 
-Epic_CLI\.pyc
+*\.pyc
+*\.pyo
+
+dist/
+.tox/
