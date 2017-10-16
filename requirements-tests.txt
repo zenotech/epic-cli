@@ -1,2 +1,6 @@
 -r requirements.txt
-nose2==0.6.5
+pytest
+pytest-sugar
+pytest-pep8
+pytest-flake8
+pytest-coverage
