@@ -2,5 +2,5 @@
 pytest==3.2.3
 pytest-sugar
 pytest-pep8==1.0.6
-pytest-flake8
+pytest-flake8==0.8.1
 pytest-coverage==0.0.1
