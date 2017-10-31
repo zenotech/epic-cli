@@ -8,7 +8,7 @@ class ConfigurationException(Exception):
         self.msg = msg
 
 
-class EPICResponseError(Exception):
+class ResponseError(Exception):
     """Exception raised for errors with the response from EPIC
     """
 

@@ -37,8 +37,7 @@ class EpicClient(object):
     def _get_request(self, url, params=None):
         r = requests.get(url=self.EPIC_API_URL + url, headers=self._get_request_headers(), params=params)
         if r.status_code not in range(200, 299):
-            print("Request Error: " + r.text)
-            exit(1)
+            raise ResponseError(r.text)
         else:
             try:
                 return r.json()
@@ -50,8 +49,7 @@ class EpicClient(object):
              headers=self._get_request_headers()
         r = requests.post(json=params, url=self.EPIC_API_URL + url, headers=headers)
         if r.status_code not in range(200, 299):
-            print("Request Error: " + r.text)
-            exit(1)
+             raise ResponseError(r.text)
         else:
             try:
                 return r.json()
@@ -81,7 +79,7 @@ class EpicClient(object):
             bucket = search(r'[a-z-]+/', arn).group(0).rstrip('/')
             prefix = search(r'\d{2,}', arn.lstrip('arn:aws:s3:::')).group(0)
         except IndexError as e:
-            raise EPICResponseError("Bucket Error: " + e.message)
+            raise ResponseError("Bucket Error: " + e.message)
         return {'bucket': bucket, 'prefix': prefix, 'arn': arn}
 
     def get_aws_credentials(self):
@@ -101,7 +99,7 @@ class EpicClient(object):
         if epic_url is not None:
             self.EPIC_API_URL = epic_url
         if epic_token is not None:
-            self.EPIC_TOKEN = epic_url
+            self.EPIC_TOKEN = epic_token
 
     def _check_config(self):
         if self.EPIC_API_URL is None:
