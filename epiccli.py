@@ -205,8 +205,24 @@ def version(ctx, app_id):
     """List apps available on EPIC and their IDs"""
     pprint.pprint(ctx.obj.list_application_versions(app_id))
 
+@job.command()
+@click.pass_context
+@click.option("--appid", prompt=True)
+@click.option("--tasklist", prompt=True)
+def costs(ctx, appid, tasklist):
+    """List apps available on EPIC and their IDs"""
+    job_definition = { 
+    "application_id": appid,
+    "tasks": tasklist
+    }
+    pprint.pprint(ctx.obj.get_job_costs(job_definition))
 
 
+      # {
+      #   "tasks": 24,
+      #   "runtime": 12,
+      #   "mode": "core"
+      #   },
 
 if __name__ == '__main__':
     main()

@@ -6,7 +6,8 @@ DATA_LIST = _URL_ROOT + 'data/aws/list/'
 DATA_LOCATION = _URL_ROOT + 'data/aws/get/'
 BATCH_QUEUES = _URL_ROOT + 'batch/queues/'
 BATCH_APPLICATIONS = _URL_ROOT + 'batch/app/list'
-BATCH_JOB_CREATE = _URL_ROOT + '/batch/job/create/'
+BATCH_JOB_CREATE = _URL_ROOT + 'batch/job/create/'
+BATCH_JOB_COST = _URL_ROOT + 'batch/job/quote/'
 ACCOUNT_CREDENTIALS = _URL_ROOT + 'accounts/aws/get/'
 
 def application_version(app_id):
