@@ -230,22 +230,10 @@ class EpicClient(object):
         pass
 
     def list_job_status(self):
-        return self._get_request(urls.BATCH_JOB_LIST, headers=get_request_headers())
-
-@job.command()
-def list_jobs():
-    """List active jobs"""
-    response = get_request('/batch/job/list/', get_request_headers())
-    print("")
-    print("Active Jobs:")
-    for i in response:
-        print("- " + str(i['id']) + " | Finished? " + str(i['finished']))
-
-
-
+        return self._get_request(urls.BATCH_JOB_LIST)
 
     def get_job_status(self, job_id):
-        return self._get_request(urls.BATCH_JOB_STATUS + str(job_id), headers=get_request_headers())
+        return self._get_request(urls.BATCH_JOB_STATUS + str(job_id))
 
     def list_queue_status(self):
         return self._get_request(urls.JOB_LIST_QUEUES)
