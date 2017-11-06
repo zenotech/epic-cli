@@ -13,6 +13,6 @@ setup(
     ],
     entry_points='''
         [console_scripts]
-        Epic_CLI=Epic_CLI:main
+        epiccli=epiccli:main
     '''
 )

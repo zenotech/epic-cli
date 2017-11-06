@@ -191,6 +191,15 @@ def submit(ctx):
     response = ctx.obj.create_job(job_definition)
     click.echo('Submitted, JobID: ' + str(response))
 
+@job.command()
+@click.pass_context
+@click.option('--job')
+def status(ctx, job):
+    """Get job status"""
+    if job_id:
+        pprint.pprint(ctx.obj.get_job_status(job_id))
+    else:
+        pprint.pprint(ctx.obj.list_job_status())
 
 @job.command()
 @click.pass_context
@@ -217,12 +226,6 @@ def costs(ctx, appid, tasklist):
     }
     pprint.pprint(ctx.obj.get_job_costs(job_definition))
 
-
-      # {
-      #   "tasks": 24,
-      #   "runtime": 12,
-      #   "mode": "core"
-      #   },
 
 if __name__ == '__main__':
     main()
