@@ -193,11 +193,11 @@ def submit(ctx):
 
 @job.command()
 @click.pass_context
-@click.option('--job')
+@click.option('--job', default=None)
 def status(ctx, job):
     """Get job status"""
-    if job_id:
-        pprint.pprint(ctx.obj.get_job_status(job_id))
+    if job:
+        pprint.pprint(ctx.obj.get_job_status(job))
     else:
         pprint.pprint(ctx.obj.list_job_status())
 

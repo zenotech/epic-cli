@@ -37,6 +37,7 @@ class EpicClient(object):
         return headers
 
     def _get_request(self, url, params=None):
+        print(self._get_request_headers())
         r = requests.get(url=self.EPIC_API_URL + url, headers=self._get_request_headers(), params=params)
         if r.status_code not in range(200, 299):
             raise exceptions.ResponseError(r.text)
@@ -236,7 +237,7 @@ class EpicClient(object):
         return self._get_request(urls.BATCH_JOB_STATUS + str(job_id))
 
     def list_queue_status(self):
-        return self._get_request(urls.JOB_LIST_QUEUES)
+        return self._get_request(urls.BATCH_QUEUES)
 
     def get_job_costs(self, job_definition = {}):
         return self._post_request(urls.BATCH_JOB_COST, job_definition)
