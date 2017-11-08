@@ -169,7 +169,7 @@ class EpicClient(object):
                             aws_access_key_id=creds['aws_key_id'],
                             aws_secret_access_key=creds['aws_secret_key'])
         if not dryrun:
-            s3.Bucket(bucket['bucket']).upload_file(source, bucket['prefix'] + destination)
+            s3.Bucket(bucket['bucket']).upload_file(source, os.path.join(bucket['prefix'], destination))
         
 
     def download_file(self, source, destination, status_callback = None, dryrun = False):
@@ -179,9 +179,9 @@ class EpicClient(object):
                             aws_access_key_id=creds['aws_key_id'],
                             aws_secret_access_key=creds['aws_secret_key'])
         if status_callback is not None:
-            status_callback('Downloading %s to %s %s' % (bucket['prefix'] + source, destination, "(dryrun)" if dryrun else ""))
+            status_callback('Downloading %s to %s %s' % (os.path.join(bucket['prefix'], source), destination, "(dryrun)" if dryrun else ""))
         if not dryrun:
-            s3.Bucket(bucket['bucket']).download_file(bucket['prefix'] + source, destination)
+            s3.Bucket(bucket['bucket']).download_file(os.path.join(bucket['prefix'], source), destination)
 
 
     def upload_directory(self, source_dir, destination_prefix, rel_to = '.', status_callback = None, dryrun = False):
