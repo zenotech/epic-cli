@@ -172,14 +172,16 @@ class EpicClient(object):
             s3.Bucket(bucket['bucket']).upload_file(source, bucket['prefix'] + destination)
         
 
-    def download_file(self, source, destination, callback = None, dryrun = False):
+    def download_file(self, source, destination, status_callback = None, dryrun = False):
         creds = self.get_aws_credentials()
         bucket = self.get_s3_information()
         s3 = boto3.resource('s3',
                             aws_access_key_id=creds['aws_key_id'],
                             aws_secret_access_key=creds['aws_secret_key'])
+        if status_callback is not None:
+            status_callback('Downloading %s to %s %s' % (bucket['prefix'] + source, destination, "(dryrun)" if dryrun else ""))
         if not dryrun:
-            s3.Bucket(bucket['bucket']).download_file(bucket['prefix'] + source, destination, Callback = callback)
+            s3.Bucket(bucket['bucket']).download_file(bucket['prefix'] + source, destination)
 
 
     def upload_directory(self, source_dir, destination_prefix, rel_to = '.', status_callback = None, dryrun = False):
