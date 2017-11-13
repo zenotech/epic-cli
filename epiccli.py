@@ -7,6 +7,7 @@ import ConfigParser
 from pyepic.core import EpicClient
 from pyepic.exceptions import ConfigurationException
 
+
 @click.group()
 @click.pass_context
 @click.option('--team', type=int, help='ID of team to act as (optional)')
@@ -23,10 +24,12 @@ def main(ctx, team, config):
             exit(1)
     try:
         click.echo("Loading config from %s" % config_file)
-        ec = EpicClient(config_file = config_file)
+        ec = EpicClient(config_file=config_file)
         ctx.obj = ec
     except ConfigurationException as e:
-        click.echo("Configuration file not found or invalid, please run configure.")
+        click.echo(
+            "Configuration file not found or invalid, please run configure.")
+
 
 @main.command()
 @click.pass_context
@@ -35,21 +38,24 @@ def configure(ctx):
     click.echo("Configuring EPIC Cli")
     default_url = "https://epic.zenotech.com"
     default_token = ""
-    config_file = click.prompt('Where would you like to store the config file?', default="~/.epic/config")
+    config_file = click.prompt(
+        'Where would you like to store the config file?', default="~/.epic/config")
     if os.path.isfile(config_file):
         try:
-            ec = EpicClient(config_file = config_file)
+            ec = EpicClient(config_file=config_file)
             default_url = ec.EPIC_API_URL
-            default_token = ec.EPIC_TOKEN 
+            default_token = ec.EPIC_TOKEN
         except ConfigurationException as e:
             pass
-    epic_url = click.prompt('Please enter the EPIC Url to connect to', default=default_url)
+    epic_url = click.prompt(
+        'Please enter the EPIC Url to connect to', default=default_url)
     if click.confirm('Do you already have an EPIC API token?'):
-        token = click.prompt('Please enter your EPIC API token', default=default_token)
+        token = click.prompt(
+            'Please enter your EPIC API token', default=default_token)
     else:
         username = click.prompt('EPIC Username (email)?')
-        password = click.prompt('Password?', hide_input = True)
-        ec = EpicClient(epic_url = epic_url, epic_token="")
+        password = click.prompt('Password?', hide_input=True)
+        ec = EpicClient(epic_url=epic_url, epic_token="")
         token = ec.get_security_token(username, password)
     config = ConfigParser.RawConfigParser()
     config.add_section('epic')
@@ -66,12 +72,14 @@ def configure(ctx):
     with open(config_file, 'wb') as configfile:
         config.write(configfile)
         click.echo("Config file written to %s" % config_file)
-    
+
+
 @main.group()
 @click.pass_context
 def billing(ctx):
     """  Billing Management """
     pass
+
 
 @billing.command("list_projects")
 @click.pass_context
@@ -95,11 +103,13 @@ def list_teams(ctx):
         else:
             click.echo(str(team['team_id']) + " | " + team['name'])
 
+
 @main.group()
 @click.pass_context
 def data(ctx):
     """Data Management"""
     pass
+
 
 @data.command()
 @click.pass_context
@@ -112,10 +122,10 @@ def list(ctx, filepath):
         filepath = filepath.strip('/')
     response = ctx.obj.list_data_locations(filepath)
     for folder in response['folders']:
-        path = folder['obj_key'].split('/',1)[1]
+        path = folder['obj_key'].split('/', 1)[1]
         click.echo('/' + path)
     for file in response['files']:
-        path = file['obj_key'].split('/',1)[1]
+        path = file['obj_key'].split('/', 1)[1]
         click.echo('/' + path)
 
 
@@ -128,18 +138,21 @@ def download(ctx, source, destination, dryrun):
     """Download a file from EPIC"""
     try:
         if source.endswith("/"):
-            click.echo("Downloading %s to %s" %(source, destination))
-            ctx.obj.download_directory(source, destination, status_callback = echo_callback, dryrun = dryrun)
+            click.echo("Downloading %s to %s" % (source, destination))
+            ctx.obj.download_directory(
+                source, destination, status_callback=echo_callback, dryrun=dryrun)
             click.echo("Download complete")
         else:
-            click.echo("Downloading %s to %s" %(source, destination))
-            ctx.obj.download_file(source, destination, dryrun = dryrun)
+            click.echo("Downloading %s to %s" % (source, destination))
+            ctx.obj.download_file(source, destination, dryrun=dryrun)
             click.echo("Download complete")
     except Exception as e:
         click.echo("Download failed, %s" % e)
 
+
 def echo_callback(msg):
     click.echo(msg)
+
 
 @data.command()
 @click.pass_context
@@ -151,12 +164,13 @@ def upload(ctx, source, destination, dryrun):
     try:
         if os.path.isfile(source):
             source = click.format_filename(source)
-            click.echo("Uploading %s to %s" %(source, destination))
-            ctx.obj.upload_file(source, destination, dryrun = dryrun)
+            click.echo("Uploading %s to %s" % (source, destination))
+            ctx.obj.upload_file(source, destination, dryrun=dryrun)
             click.echo("Upload complete")
         else:
-            click.echo("Uploading directory %s to %s" %(source, destination))
-            ctx.obj.upload_directory(source, destination, status_callback = echo_callback, dryrun = dryrun)
+            click.echo("Uploading directory %s to %s" % (source, destination))
+            ctx.obj.upload_directory(
+                source, destination, status_callback=echo_callback, dryrun=dryrun)
             click.echo("Upload directory complete")
     except Exception as e:
         print("Upload failed, %s" % e)
@@ -168,11 +182,13 @@ def job(ctx):
     """Submit or manage your EPIC jobs"""
     pass
 
+
 @job.command()
 @click.pass_context
 def list_queues(ctx):
     """List current status of available queues"""
     pprint.pprint(ctx.obj.list_queue_status())
+
 
 @job.command()
 @click.pass_context
@@ -191,6 +207,7 @@ def submit(ctx):
     response = ctx.obj.create_job(job_definition)
     click.echo('Submitted, JobID: ' + str(response))
 
+
 @job.command()
 @click.pass_context
 @click.option('--job', default=None)
@@ -201,11 +218,13 @@ def status(ctx, job):
     else:
         pprint.pprint(ctx.obj.list_job_status())
 
+
 @job.command()
 @click.pass_context
 def list_apps(ctx):
     """List apps available on EPIC and their IDs"""
     pprint.pprint(ctx.obj.list_applications())
+
 
 @job.command()
 @click.pass_context
@@ -214,15 +233,16 @@ def version(ctx, app_id):
     """List apps available on EPIC and their IDs"""
     pprint.pprint(ctx.obj.list_application_versions(app_id))
 
+
 @job.command()
 @click.pass_context
 @click.option("--appid", prompt=True)
 @click.option("--tasklist", prompt=True)
 def costs(ctx, appid, tasklist):
     """List apps available on EPIC and their IDs"""
-    job_definition = { 
-    "application_id": appid,
-    "tasks": tasklist
+    job_definition = {
+        "application_id": appid,
+        "tasks": tasklist
     }
     pprint.pprint(ctx.obj.get_job_costs(job_definition))
 
