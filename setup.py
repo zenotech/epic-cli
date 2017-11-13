@@ -4,7 +4,7 @@ setup(
     name="epiccli",
     version_command='git describe',
     py_modules=['epiccli'],
-    package_dir=['pyepic'],
+    packages=['pyepic'],
     install_requires=[
         'Click',
         'requests',
