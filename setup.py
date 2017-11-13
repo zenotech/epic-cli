@@ -3,7 +3,8 @@ from setuptools import setup
 setup(
     name="epiccli",
     version_command='git describe',
-    py_modules=['epiccli','pyepic'],
+    py_modules=['epiccli'],
+    package_dir=['pyepic'],
     install_requires=[
         'Click',
         'requests',
