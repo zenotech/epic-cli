@@ -1,9 +1,10 @@
 from setuptools import setup
 
 setup(
-    name="Epic_CLI",
+    name="epiccli",
     version_command='git describe',
-    py_modules=['Epic_CLI'],
+    py_modules=['epiccli'],
+    packages=['pyepic'],
     install_requires=[
         'Click',
         'requests',
