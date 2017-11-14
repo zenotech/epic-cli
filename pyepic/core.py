@@ -95,14 +95,14 @@ class EpicClient(object):
 
     def _load_config(self, epic_url=None, epic_token=None, config_file=None):
         """
-        Load client config, order of precedence = args > config_file > env 
+        Load client config, order of precedence = args > env > config_file
         """
-        self.EPIC_API_URL = os.environ.get('EPIC_API_ENDPOINT', None)
-        self.EPIC_TOKEN = os.environ.get('EPIC_TOKEN', None)
-        self.EPIC_TEAM = os.environ.get('EPIC_TEAM', 0)
-        self.EPIC_PROJECT = os.environ.get('EPIC_PROJECT', 0)
         if config_file is not None:
             self._load_config_file(config_file)
+        self.EPIC_API_URL = os.environ.get('EPIC_API_ENDPOINT', self.EPIC_API_URL)
+        self.EPIC_TOKEN = os.environ.get('EPIC_TOKEN', self.EPIC_TOKEN)
+        self.EPIC_TEAM = os.environ.get('EPIC_TEAM', self.EPIC_TEAM)
+        self.EPIC_PROJECT = os.environ.get('EPIC_PROJECT', self.EPIC_PROJECT)
         if epic_url is not None:
             self.EPIC_API_URL = epic_url
         if epic_token is not None:
