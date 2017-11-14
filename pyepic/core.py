@@ -97,6 +97,10 @@ class EpicClient(object):
         """
         Load client config, order of precedence = args > env > config_file
         """
+        self.EPIC_API_URL = None
+        self.EPIC_TOKEN = None
+        self.EPIC_TEAM = 0
+        self.EPIC_PROJECT = 0
         if config_file is not None:
             self._load_config_file(config_file)
         self.EPIC_API_URL = os.environ.get('EPIC_API_ENDPOINT', self.EPIC_API_URL)
