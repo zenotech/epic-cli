@@ -12,7 +12,6 @@ BATCH_JOB_STATUS = _URL_ROOT + 'batch/job/status/'
 BATCH_JOB_LIST = _URL_ROOT + 'batch/job/list/'
 ACCOUNT_CREDENTIALS = _URL_ROOT + 'accounts/aws/get/'
 
+
 def application_version(app_id):
-	return _URL_ROOT + 'batch/app/' + str(app_id) + '/versions/'
-
-
+    return _URL_ROOT + 'batch/app/' + str(app_id) + '/versions/'

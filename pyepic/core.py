@@ -2,7 +2,7 @@ import os
 import requests
 import urls
 from re import search
-import boto3 
+import boto3
 
 from botocore.exceptions import ClientError
 
@@ -14,13 +14,15 @@ import exceptions
 class EpicJob(object):
     pass
 
+
 class EpicDataLocation(object):
     pass
+
 
 class EpicClient(object):
     """Client for the EPIC API"""
 
-    def __init__(self, epic_url = None, epic_token = None, config_file = None):
+    def __init__(self, epic_url=None, epic_token=None, config_file=None):
         super(EpicClient, self).__init__()
         self._load_config(epic_url, epic_token, config_file)
         self._check_config()
@@ -38,7 +40,8 @@ class EpicClient(object):
 
     def _get_request(self, url, params=None):
         print(self._get_request_headers())
-        r = requests.get(url=self.EPIC_API_URL + url, headers=self._get_request_headers(), params=params)
+        r = requests.get(url=self.EPIC_API_URL + url,
+                         headers=self._get_request_headers(), params=params)
         if r.status_code not in range(200, 299):
             raise exceptions.ResponseError(r.text)
         else:
@@ -47,12 +50,13 @@ class EpicClient(object):
             except ValueError:
                 return "No Response"
 
-    def _post_request(self, url, params, headers = None):
+    def _post_request(self, url, params, headers=None):
         if headers is None:
-             headers=self._get_request_headers()
-        r = requests.post(json=params, url=self.EPIC_API_URL + url, headers=headers)
+            headers = self._get_request_headers()
+        r = requests.post(
+            json=params, url=self.EPIC_API_URL + url, headers=headers)
         if r.status_code not in range(200, 299):
-             raise exceptions.ResponseError(r.text)
+            raise exceptions.ResponseError(r.text)
         else:
             try:
                 return r.json()
@@ -77,7 +81,7 @@ class EpicClient(object):
 
     def get_s3_information(self):
         headers = self._get_request_headers()
-        arn =  self._get_request(urls.DATA_LOCATION)
+        arn = self._get_request(urls.DATA_LOCATION)
         try:
             bucket = search(r'[a-z-]+/', arn).group(0).rstrip('/')
             prefix = search(r'\d{2,}', arn.lstrip('arn:aws:s3:::')).group(0)
@@ -89,7 +93,7 @@ class EpicClient(object):
         headers = self._get_request_headers()
         return self._get_request(urls.ACCOUNT_CREDENTIALS)
 
-    def _load_config(self, epic_url = None, epic_token = None, config_file = None):
+    def _load_config(self, epic_url=None, epic_token=None, config_file=None):
         """
         Load client config, order of precedence = args > config_file > env 
         """
@@ -106,9 +110,11 @@ class EpicClient(object):
 
     def _check_config(self):
         if self.EPIC_API_URL is None:
-            raise ConfigurationException("Missing EPIC URL, set EPIC_API_URL or supply a configuration file")
+            raise ConfigurationException(
+                "Missing EPIC URL, set EPIC_API_URL or supply a configuration file")
         elif self.EPIC_TOKEN is None:
-            raise ConfigurationException("Missing EPIC URL, set EPIC_TOKEN or supply a configuration file")
+            raise ConfigurationException(
+                "Missing EPIC URL, set EPIC_TOKEN or supply a configuration file")
 
     def _load_config_file(self, file):
         parser = SafeConfigParser(allow_no_value=True)
@@ -120,12 +126,12 @@ class EpicClient(object):
                 self.EPIC_TEAM = parser.getint('epic', 'default_team')
                 self.EPIC_PROJECT = parser.getint('epic', 'default_project')
         else:
-            raise ConfigurationException("Invalid EPIC configuration file %s" % file)
-
+            raise ConfigurationException(
+                "Invalid EPIC configuration file %s" % file)
 
     def get_security_token(self, username, password):
         params = {'username': username, 'password': password}
-        return self._post_request(urls.AUTH, params, headers = "")['token']
+        return self._post_request(urls.AUTH, params, headers="")['token']
 
     def list_project_codes(self):
         response = self._get_request(urls.PROJECTS_LIST)
@@ -162,26 +168,28 @@ class EpicClient(object):
     def delete_file():
         pass
 
-    def upload_file(self, source, destination, dryrun = False):
+    def upload_file(self, source, destination, dryrun=False):
         creds = self.get_aws_credentials()
         bucket = self.get_s3_information()
         s3 = boto3.resource('s3',
                             aws_access_key_id=creds['aws_key_id'],
                             aws_secret_access_key=creds['aws_secret_key'])
         if not dryrun:
-            s3.Bucket(bucket['bucket']).upload_file(source, os.path.join(bucket['prefix'], destination))
-        
+            s3.Bucket(bucket['bucket']).upload_file(
+                source, os.path.join(bucket['prefix'], destination))
 
-    def download_file(self, source, destination, status_callback = None, dryrun = False):
+    def download_file(self, source, destination, status_callback=None, dryrun=False):
         creds = self.get_aws_credentials()
         bucket = self.get_s3_information()
         s3 = boto3.resource('s3',
                             aws_access_key_id=creds['aws_key_id'],
                             aws_secret_access_key=creds['aws_secret_key'])
         if status_callback is not None:
-            status_callback('Downloading %s to %s %s' % (os.path.join(bucket['prefix'], source), destination, "(dryrun)" if dryrun else ""))
+            status_callback('Downloading %s to %s %s' % (os.path.join(
+                bucket['prefix'], source), destination, "(dryrun)" if dryrun else ""))
         if not dryrun:
-            s3.Bucket(bucket['bucket']).download_file(os.path.join(bucket['prefix'], source), destination)
+            s3.Bucket(bucket['bucket']).download_file(
+                os.path.join(bucket['prefix'], source), destination)
 
     def download_fileobj(self, source, destination_obj, status_callback = None, dryrun = False):
         creds = self.get_aws_credentials()
@@ -194,7 +202,7 @@ class EpicClient(object):
         if not dryrun:
             s3.Bucket(bucket['bucket']).download_fileobj(os.path.join(bucket['prefix'], source), destination_obj)
 
-    def upload_directory(self, source_dir, destination_prefix, rel_to = '.', status_callback = None, dryrun = False):
+    def upload_directory(self, source_dir, destination_prefix, rel_to='.', status_callback=None, dryrun=False):
         creds = self.get_aws_credentials()
         bucket = self.get_s3_information()
         s3 = boto3.resource('s3',
@@ -204,38 +212,43 @@ class EpicClient(object):
             for filename in files:
                 local_path = os.path.join(root, filename)
                 relative_path = os.path.relpath(local_path, rel_to)
-                s3_path = os.path.join(bucket['bucket'], bucket['prefix'], destination_prefix, relative_path)
-                key = os.path.join(bucket['prefix'], destination_prefix.strip("/"), relative_path)
+                s3_path = os.path.join(bucket['bucket'], bucket[
+                                       'prefix'], destination_prefix, relative_path)
+                key = os.path.join(
+                    bucket['prefix'], destination_prefix.strip("/"), relative_path)
                 try:
                     s3.Object(bucket['bucket'], key).load()
                     if status_callback is not None:
-                        status_callback('File found in data store, skipping %s %s' % (key, "(dryrun)" if dryrun else ""))
+                        status_callback('File found in data store, skipping %s %s' % (
+                            key, "(dryrun)" if dryrun else ""))
                 except ClientError as e:
                     if status_callback is not None:
-                        status_callback("Uploading %s %s" % (os.path.join(bucket['prefix'], destination_prefix, relative_path), 
+                        status_callback("Uploading %s %s" % (os.path.join(bucket['prefix'], destination_prefix, relative_path),
                                                              "(dryrun)" if dryrun else ""))
                     if not dryrun:
-                        s3.Bucket(bucket['bucket']).upload_file(local_path, key)
-           
+                        s3.Bucket(bucket['bucket']).upload_file(
+                            local_path, key)
 
-    def download_directory(self, source, destination, status_callback = None, dryrun = False):
+    def download_directory(self, source, destination, status_callback=None, dryrun=False):
         creds = self.get_aws_credentials()
         bucket = self.get_s3_information()
         s3 = boto3.resource('s3',
                             aws_access_key_id=creds['aws_key_id'],
                             aws_secret_access_key=creds['aws_secret_key'])
         for obj in s3.Bucket(bucket['bucket']).objects.filter(Prefix=bucket['prefix'] + source):
-            filename = os.path.join(destination, obj.key.split("/",1)[1])
+            filename = os.path.join(destination, obj.key.split("/", 1)[1])
             if status_callback is not None:
-                status_callback("Downloading %s to %s %s" % (obj.key, filename, "(dryrun)" if dryrun else ""))
+                status_callback("Downloading %s to %s %s" % (
+                    obj.key, filename, "(dryrun)" if dryrun else ""))
             if not dryrun:
                 path, file_n = os.path.split(filename)
                 try:
-                    os.makedirs(path) 
+                    os.makedirs(path)
                 except OSError:
                     pass
                 try:
-                    s3.Bucket(bucket['bucket']).download_file(obj.key, filename)
+                    s3.Bucket(bucket['bucket']).download_file(
+                        obj.key, filename)
                 except botocore.exceptions.ClientError as e:
                     print e
 
@@ -251,10 +264,10 @@ class EpicClient(object):
     def list_queue_status(self):
         return self._get_request(urls.BATCH_QUEUES)
 
-    def get_job_costs(self, job_definition = {}):
+    def get_job_costs(self, job_definition={}):
         return self._post_request(urls.BATCH_JOB_COST, job_definition)
 
-    def create_job(self, job_definition = {}):
+    def create_job(self, job_definition={}):
         return self._post_request(urls.BATCH_JOB_CREATE, job_definition)
 
     def cancel_job():
