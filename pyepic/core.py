@@ -8,7 +8,7 @@ from botocore.exceptions import ClientError
 
 from ConfigParser import SafeConfigParser
 
-import exceptions
+from .exceptions import ConfigurationException
 
 
 class EpicJob(object):
