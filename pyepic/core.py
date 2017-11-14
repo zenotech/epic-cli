@@ -9,7 +9,7 @@ from botocore.exceptions import ClientError
 from ConfigParser import SafeConfigParser
 
 from .exceptions import ConfigurationException
-
+from .exceptions import ResponseError
 
 class EpicJob(object):
     pass
@@ -43,7 +43,7 @@ class EpicClient(object):
         r = requests.get(url=self.EPIC_API_URL + url,
                          headers=self._get_request_headers(), params=params)
         if r.status_code not in range(200, 299):
-            raise exceptions.ResponseError(r.text)
+            raise ResponseError(r.text)
         else:
             try:
                 return r.json()
@@ -56,7 +56,7 @@ class EpicClient(object):
         r = requests.post(
             json=params, url=self.EPIC_API_URL + url, headers=headers)
         if r.status_code not in range(200, 299):
-            raise exceptions.ResponseError(r.text)
+            raise ResponseError(r.text)
         else:
             try:
                 return r.json()
@@ -86,7 +86,7 @@ class EpicClient(object):
             bucket = search(r'[a-z-]+/', arn).group(0).rstrip('/')
             prefix = search(r'\d{2,}', arn.lstrip('arn:aws:s3:::')).group(0)
         except IndexError as e:
-            raise exceptions.ResponseError("Bucket Error: " + e.message)
+            raise ResponseError("Bucket Error: " + e.message)
         return {'bucket': bucket, 'prefix': prefix, 'arn': arn}
 
     def get_aws_credentials(self):
