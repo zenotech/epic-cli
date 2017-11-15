@@ -39,7 +39,7 @@ class EpicClient(object):
         return headers
 
     def _get_request(self, url, params=None):
-        print(self._get_request_headers())
+        #print(self._get_request_headers())
         r = requests.get(url=self.EPIC_API_URL + url,
                          headers=self._get_request_headers(), params=params)
         if r.status_code not in range(200, 299):
@@ -105,8 +105,8 @@ class EpicClient(object):
             self._load_config_file(config_file)
         self.EPIC_API_URL = os.environ.get('EPIC_API_ENDPOINT', self.EPIC_API_URL)
         self.EPIC_TOKEN = os.environ.get('EPIC_TOKEN', self.EPIC_TOKEN)
-        self.EPIC_TEAM = os.environ.get('EPIC_TEAM', self.EPIC_TEAM)
-        self.EPIC_PROJECT = os.environ.get('EPIC_PROJECT', self.EPIC_PROJECT)
+        self.EPIC_TEAM = int(os.environ.get('EPIC_TEAM', self.EPIC_TEAM))
+        self.EPIC_PROJECT = int(os.environ.get('EPIC_PROJECT', self.EPIC_PROJECT))
         if epic_url is not None:
             self.EPIC_API_URL = epic_url
         if epic_token is not None:
