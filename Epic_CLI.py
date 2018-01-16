@@ -6,7 +6,8 @@ import boto3
 from botocore import exceptions
 from re import search
 
-BASE_URL = os.environ.get('EPIC_API_ENDPOINT', "https://epic.zenotech.com/api/v1")
+BASE_URL = os.environ.get(
+    'EPIC_API_ENDPOINT', "https://epic.zenotech.com/api/v1")
 DIR = os.path.expanduser('~/.epic')
 TEAM = None
 PROJECT_CODE = None
@@ -74,14 +75,16 @@ def notifications():
     print
     for notification in response:
         print(notification['message'])
-        print('- ' + notification['long_message'] + ' (' + notification['message_level'] + ')')
+        print('- ' + notification['long_message'] +
+              ' (' + notification['message_level'] + ')')
         print
 
 
 @accounts.command()
 def clear():
     """Clear the user's notifications"""
-    r = requests.delete(BASE_URL + '/accounts/notifications/', headers=get_request_headers())
+    r = requests.delete(BASE_URL + '/accounts/notifications/',
+                        headers=get_request_headers())
     if r.status_code != 200:
         print('Error deleting notifications ' + str(r.status_code))
     else:
@@ -189,7 +192,8 @@ def rm(ctx, filename):
 def cpu(ctx, source, destination):
     """Copy a file UP to EPIC"""
     client = create_boto_client()
-    client['client'].Bucket(client['bucket']).upload_file(click.format_filename(source), client['key'] + destination)
+    client['client'].Bucket(client['bucket']).upload_file(
+        click.format_filename(source), client['key'] + destination)
     print(client['key'] + destination)
     ctx.invoke(ls)
 
@@ -202,7 +206,8 @@ def cpd(source, destination):
     """Copy a file DOWN from EPIC"""
     client = create_boto_client()
     try:
-        client['client'].Bucket(client['bucket']).download_file(client['key'] + source, destination)
+        client['client'].Bucket(client['bucket']).download_file(
+            client['key'] + source, destination)
     except exceptions.ClientError:
         print("Permission denied, is the filepath correct? (Requires a leading /)")
 
@@ -219,7 +224,8 @@ def mv(ctx, source, destination):
         'Key': client['key'] + source
     }
     try:
-        client['client'].Bucket(client['bucket']).copy(copy_source, client['key'] + destination)
+        client['client'].Bucket(client['bucket']).copy(
+            copy_source, client['key'] + destination)
         ctx.invoke(rm, filename=source)
     except exceptions.ClientError:
         print("Permission denied, is the filepath correct? (Requires a leading /)")
@@ -235,7 +241,8 @@ def job():
 @click.option('--job_ID', default=1, prompt=True)
 def status(job_id):
     """Get job status"""
-    response = get_request(url='/batch/job/status/' + str(job_id), headers=get_request_headers())
+    response = get_request(url='/batch/job/status/' +
+                           str(job_id), headers=get_request_headers())
     print("Status " + response['status'])
 
 
@@ -246,8 +253,10 @@ def queues():
     print("")
     print("Available Queues:")
     for queue in response:
-        print("- " + queue["cluster_name"] + ": " + queue['name'] + " (" + str(queue['id']) + ")")
-        print("    - " + str(queue['max_cores']) + " cores /" + str(queue['idle_cores']) + " available.")
+        print("- " + queue["cluster_name"] + ": " +
+              queue['name'] + " (" + str(queue['id']) + ")")
+        print("    - " + str(queue['max_cores']) +
+              " cores /" + str(queue['idle_cores']) + " available.")
         print("    - RAM: " + str(queue['ram']) + "GB")
         print("    - Price: " + queue['price'] + " per core hour")
         print("")
@@ -266,7 +275,8 @@ def submit():
         "queue_id": queue_id,
         "working_dir_key": working_dir
     }
-    response = post_request(params, "/batch/job/create/", get_request_headers())
+    response = post_request(
+        params, "/batch/job/create/", get_request_headers())
     print('Submitted, JobID: ' + str(response))
 
 
@@ -298,14 +308,16 @@ def cluster_list(app_id, app_version_id):
                            get_request_headers())
     print response
     for item in response:
-        print("Queue Name: " + item['display_name'] + " | ID: " + str(item['id']))
+        print("Queue Name: " + item['display_name'] +
+              " | ID: " + str(item['id']))
 
 
 @job.command()
 @click.option('--jobId', default=1, prompt=True)
 def delete(jobid):
     """Delete a running job"""
-    post_request({'job_id': jobid}, '/batch/job/delete/', get_request_headers())
+    post_request({'job_id': jobid}, '/batch/job/delete/',
+                 get_request_headers())
 
 
 @main.group()
@@ -328,7 +340,8 @@ def list_app():
 @click.option("--app_id", default=1, prompt=True)
 def versions(app_id):
     """Given an app ID, list the available versions of it on EPIC"""
-    response = get_request('/batch/app/' + str(app_id) + '/versions/', get_request_headers())
+    response = get_request('/batch/app/' + str(app_id) +
+                           '/versions/', get_request_headers())
     for i in response:
         print("- " + i['version'] + ":" + str(i['id']))
 
