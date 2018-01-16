@@ -351,7 +351,7 @@ def create_boto_client():
     client = boto3.resource('s3',
                             aws_access_key_id=creds['aws_key_id'],
                             aws_secret_access_key=creds['aws_secret_key'])
-    arn = get_request('/data/aws/ge t', get_request_headers())
+    arn = get_request('/data/aws/get', get_request_headers())
     print(arn)
     try:
         bucket = search(r'[a-z-]+/', arn).group(0).rstrip('/')
