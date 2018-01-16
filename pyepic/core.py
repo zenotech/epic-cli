@@ -11,6 +11,7 @@ from ConfigParser import SafeConfigParser
 from .exceptions import ConfigurationException
 from .exceptions import ResponseError
 
+
 class EpicJob(object):
     pass
 
@@ -39,7 +40,6 @@ class EpicClient(object):
         return headers
 
     def _get_request(self, url, params=None):
-        #print(self._get_request_headers())
         r = requests.get(url=self.EPIC_API_URL + url,
                          headers=self._get_request_headers(), params=params)
         if r.status_code not in range(200, 299):
@@ -69,7 +69,6 @@ class EpicClient(object):
                                 aws_access_key_id=creds['aws_key_id'],
                                 aws_secret_access_key=creds['aws_secret_key'])
         arn = get_request('/data/aws/get', get_request_headers())
-        #print(arn)
         try:
             bucket = search(r'[a-z-]+/', arn).group(0).rstrip('/')
             prefix = search(r'\d{2,}', arn.lstrip('arn:aws:s3:::')).group(0)
@@ -195,7 +194,7 @@ class EpicClient(object):
             s3.Bucket(bucket['bucket']).download_file(
                 os.path.join(bucket['prefix'], source), destination)
 
-    def download_fileobj(self, source, destination_obj, status_callback = None, dryrun = False):
+    def download_fileobj(self, source, destination_obj, status_callback=None, dryrun=False):
         creds = self.get_aws_credentials()
         bucket = self.get_s3_information()
         s3 = boto3.resource('s3',
