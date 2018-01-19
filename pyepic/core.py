@@ -63,20 +63,20 @@ class EpicClient(object):
             except ValueError:
                 return "No Response"
 
-    def _create_boto_client():
-        creds = get_request('/accounts/aws/get/', get_request_headers())
+    def _create_boto_client(self):
+        creds = self._get_request('/accounts/aws/get/', self._get_request_headers())
         client = boto3.resource('s3',
                                 aws_access_key_id=creds['aws_key_id'],
                                 aws_secret_access_key=creds['aws_secret_key'])
-        arn = get_request('/data/aws/get', get_request_headers())
+        arn = self._get_request('/data/aws/get', self._get_request_headers())
         try:
             bucket = search(r'[a-z-]+/', arn).group(0).rstrip('/')
             prefix = search(r'\d{2,}', arn.lstrip('arn:aws:s3:::')).group(0)
-            print(bucket, key)
+            print(bucket, prefix)
         except IndexError as e:
             print("Bucket Error: " + e.message)
             return
-        return {'client': client, 'bucket': bucket, 'key': key}
+        return {'client': client, 'bucket': bucket, 'key': prefix}
 
     def get_s3_information(self):
         headers = self._get_request_headers()
@@ -146,19 +146,19 @@ class EpicClient(object):
     def delete_user_notification(self):
         pass
 
-    def get_aws_tokens():
+    def get_aws_tokens(self):
         pass
 
-    def create_aws_tokens():
+    def create_aws_tokens(self):
         pass
 
     def list_teams(self):
         return self._get_request(urls.TEAMS_LIST)
 
-    def create_team():
+    def create_team(self):
         pass
 
-    def get_s3_location():
+    def get_s3_location(self):
         pass
 
     def list_data_locations(self, filepath):
@@ -168,8 +168,14 @@ class EpicClient(object):
             params = None
         return self._get_request(urls.DATA_LIST, params)
 
-    def delete_file():
-        pass
+    def delete_file(self, source,dryrun):
+        creds = self.get_aws_credentials()
+        bucket = self.get_s3_information()
+        s3 = boto3.resource('s3',
+                            aws_access_key_id=creds['aws_key_id'],
+                            aws_secret_access_key=creds['aws_secret_key'])
+        if not dryrun:
+            s3.Bucket(bucket['bucket']).delete_objects(Delete={'Objects': [{'Key': source}]})
 
     def upload_file(self, source, destination, dryrun=False):
         creds = self.get_aws_credentials()
@@ -201,7 +207,8 @@ class EpicClient(object):
                             aws_access_key_id=creds['aws_key_id'],
                             aws_secret_access_key=creds['aws_secret_key'])
         if status_callback is not None:
-            status_callback('Downloading %s to object %s' % (os.path.join(bucket['prefix'], source), "(dryrun)" if dryrun else ""))
+            status_callback(
+                'Downloading %s to object %s' % (os.path.join(bucket['prefix'], source), "(dryrun)" if dryrun else ""))
         if not dryrun:
             s3.Bucket(bucket['bucket']).download_fileobj(os.path.join(bucket['prefix'], source), destination_obj)
 
@@ -216,7 +223,7 @@ class EpicClient(object):
                 local_path = os.path.join(root, filename)
                 relative_path = os.path.relpath(local_path, rel_to)
                 s3_path = os.path.join(bucket['bucket'], bucket[
-                                       'prefix'], destination_prefix, relative_path)
+                    'prefix'], destination_prefix, relative_path)
                 key = os.path.join(
                     bucket['prefix'], destination_prefix.strip("/"), relative_path)
                 try:
@@ -226,8 +233,9 @@ class EpicClient(object):
                             key, "(dryrun)" if dryrun else ""))
                 except ClientError as e:
                     if status_callback is not None:
-                        status_callback("Uploading %s %s" % (os.path.join(bucket['prefix'], destination_prefix, relative_path),
-                                                             "(dryrun)" if dryrun else ""))
+                        status_callback(
+                            "Uploading %s %s" % (os.path.join(bucket['prefix'], destination_prefix, relative_path),
+                                                 "(dryrun)" if dryrun else ""))
                     if not dryrun:
                         s3.Bucket(bucket['bucket']).upload_file(
                             local_path, key)
@@ -252,11 +260,34 @@ class EpicClient(object):
                 try:
                     s3.Bucket(bucket['bucket']).download_file(
                         obj.key, filename)
-                except botocore.exceptions.ClientError as e:
+                except ClientError as e:
                     print e
 
-    def move_file():
-        pass
+    def move_file(self, source, destination, dryrun=False):
+        creds = self.get_aws_credentials()
+        bucket = self.get_s3_information()
+        s3 = boto3.resource('s3',
+                            aws_access_key_id=creds['aws_key_id'],
+                            aws_secret_access_key=creds['aws_secret_key'])
+        if not dryrun:
+            try:
+                s3.Bucket(bucket['bucket']).copy(source, destination)
+                s3.Bucket(bucket['bucket']).delete_objects(Delete={'Objects': [{'Key': source}]})
+            except ClientError as e:
+                print e
+
+        """Move a file within EPIC"""
+        client = self._create_boto_client()
+        copy_source = {
+            'Bucket': client['bucket'],
+            'Key': client['key'] + source
+        }
+        try:
+            client['client'].Bucket(client['bucket']).copy(
+                copy_source, client['key'] + destination)
+            self.delete_file(source)
+        except ClientError:
+            print("Permission denied, is the filepath correct? (Requires a leading /)")
 
     def list_job_status(self):
         return self._get_request(urls.BATCH_JOB_LIST)
@@ -273,13 +304,13 @@ class EpicClient(object):
     def create_job(self, job_definition={}):
         return self._post_request(urls.BATCH_JOB_CREATE, job_definition)
 
-    def cancel_job():
+    def cancel_job(self):
         pass
 
-    def list_clusters():
+    def list_clusters(self):
         pass
 
-    def delete_job():
+    def delete_job(self):
         pass
 
     def list_applications(self):

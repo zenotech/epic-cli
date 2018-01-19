@@ -26,7 +26,7 @@ def main(ctx, team, config):
         click.echo("Loading config from %s" % config_file)
         ec = EpicClient(config_file=config_file)
         ctx.obj = ec
-    except ConfigurationException as e:
+    except ConfigurationException:
         click.echo(
             "Configuration file not found or invalid, please run configure.")
 
