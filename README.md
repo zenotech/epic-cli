@@ -1,6 +1,6 @@
 # Epic by Zenotech - Command Line Inteface
 [![Build
-Status](https://travis-ci.org/zenotech/epic-cli.svg?branch=master)](https://travis-ci.org/zenotech/epic-cli) [![Updates](https://pyup.io/repos/github/zenotech/epic-cli/shield.svg)](https://pyup.io/repos/github/zenotech/epic=cli/)
+Status](https://travis-ci.org/zenotech/epic-cli.svg?branch=master)](https://travis-ci.org/zenotech/epic-cli) [![Updates](https://pyup.io/repos/github/zenotech/epic-cli/shield.svg)](https://pyup.io/repos/github/zenotech/epic-cli/)
 
 [EPIC](epic.zenotech.com) is a cloud platform for interfacing with HPC resources. This Python CLI demonstrates the REST API exposed on the EPIC platform and allows basic usage of the platform through the command line.
 
