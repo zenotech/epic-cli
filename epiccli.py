@@ -175,6 +175,20 @@ def upload(ctx, source, destination, dryrun):
     except Exception as e:
         print("Upload failed, %s" % e)
 
+@data.command()
+@click.pass_context
+@click.argument("source")
+@click.argument("destination")
+@click.option('--dryrun', is_flag=True)
+def move(ctx,source,destination,dryrun):
+    """Move a file from one location to another in EPIC"""
+    try:
+        click.echo('Moving %s to %s'%(source,destination))
+        ctx.obj.move_file(source,destination,dryrun)
+        click.echo('Move complete')
+    except Exception as e
+        print("Move failed, %s" % e)
+
 
 @main.group()
 @click.pass_context

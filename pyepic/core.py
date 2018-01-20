@@ -285,19 +285,6 @@ class EpicClient(object):
             except ClientError as e:
                 print e
 
-        """Move a file within EPIC"""
-        client = self._create_boto_client()
-        copy_source = {
-            'Bucket': client['bucket'],
-            'Key': client['key'] + source
-        }
-        try:
-            client['client'].Bucket(client['bucket']).copy(
-                copy_source, client['key'] + destination)
-            self.delete_file(source)
-        except ClientError:
-            print("Permission denied, is the filepath correct? (Requires a leading /)")
-
     def list_job_status(self):
         return self._get_request(urls.BATCH_JOB_LIST)
 
