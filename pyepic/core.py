@@ -141,25 +141,34 @@ class EpicClient(object):
         return response
 
     def list_user_notifications(self):
-        pass
+        response = self._get_request(urls.NOTIFICATIONS)
+        return response
 
     def delete_user_notification(self):
-        pass
+        r = requests.delete(BASE_URL + '/accounts/notifications/',
+                            headers=self._get_request_headers())
+        if r.status_code != 200:
+            raise ResponseError
+        else:
+            return True
 
     def get_aws_tokens(self):
-        pass
+        response = self._get_request(urls.AWS_GET)
+        return response
 
     def create_aws_tokens(self):
-        pass
+        response = self._get_request(urls.AWS_CREATE)
+        return response
 
     def list_teams(self):
         return self._get_request(urls.TEAMS_LIST)
 
-    def create_team(self):
-        pass
+    def create_team(self, team_specification={}):
+        response = self._post_request(urls.TEAMS_CREATE,team_specification)
+        return self.list_teams()
 
     def get_s3_location(self):
-        pass
+        return self._get_request(urls.AWS_DATA_GET)
 
     def list_data_locations(self, filepath):
         if filepath is not None:
@@ -304,14 +313,17 @@ class EpicClient(object):
     def create_job(self, job_definition={}):
         return self._post_request(urls.BATCH_JOB_CREATE, job_definition)
 
-    def cancel_job(self):
-        pass
+    def cancel_job(self, job_id):
+        self._post_request(urls.BATCH_JOB_CANCEL,{'pk': job_id})
+        return self.list_job_status()
 
-    def list_clusters(self):
-        pass
+    def list_clusters(self,app_id,app_version_id):
+        response = self._get_request(urls.CLUST_LIST+str(app_id)+'/'+str(app_version_id)+'/resources/')
+        return response
 
-    def delete_job(self):
-        pass
+    def delete_job(self,job_id):
+        self._post_request(urls.BATCH_JOB_DELETE,{'job_id':job_id})
+        return self.list_job_status()
 
     def list_applications(self):
         return self._get_request(urls.BATCH_APPLICATIONS)

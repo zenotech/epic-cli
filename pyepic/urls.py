@@ -11,7 +11,14 @@ BATCH_JOB_COST = _URL_ROOT + 'batch/job/quote/'
 BATCH_JOB_STATUS = _URL_ROOT + 'batch/job/status/'
 BATCH_JOB_LIST = _URL_ROOT + 'batch/job/list/'
 ACCOUNT_CREDENTIALS = _URL_ROOT + 'accounts/aws/get/'
-
+NOTIFICATIONS = _URL_ROOT + 'accounts/notifications/'
+AWS_GET = _URL_ROOT + 'accounts/aws/get/'
+AWS_CREATE = _URL_ROOT + 'accounts/aws/create/'
+TEAMS_CREATE = _URL_ROOT + 'teams/create/'
+AWS_DATA_GET = _URL_ROOT + 'data/aws/get/'
+BATCH_JOB_CANCEL = _URL_ROOT + 'batch/job/cancel/'
+CLUST_LIST = _URL_ROOT + 'batch/app/'
+BATCH_JOB_DELETE = _URL_ROOT + 'batch/job/delete/'
 
 def application_version(app_id):
     return _URL_ROOT + 'batch/app/' + str(app_id) + '/versions/'
