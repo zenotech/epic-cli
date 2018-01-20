@@ -89,8 +89,40 @@ def list_projectcodes(ctx):
     for project in ctx.obj.list_project_codes():
         pprint.pprint(project)
 
+@main.group()
+@click.pass_context
+def accounts(ctx):
+    """Account Management"""
+    pass
 
-@billing.command("list_teams")
+@accounts.command()
+@click.pass_context
+def notifications(ctx):
+    """Get user notifications"""
+    notifications = ctx.obj.list_user_notifications()
+    pprint.pprint("Notifications")
+    for item in notifications:
+        pprint.pprint(item)
+
+@accounts.command()
+@click.pass_context
+def clear(ctx):
+    """Clear user notifications"""
+    ctx.obj.delete_user_notifications()
+
+@accounts.command()
+@click.pass_context
+def aws_get(ctx):
+    """Get the user's EPIC AWS credentials"""
+    pprint.pprint(ctx.obj.get_aws_tokens())
+
+@accounts.command()
+@click.pass_context
+def aws_create(ctx):
+    """Create EPIC AWS Credentials if they don't already exist"""
+    pprint.pprint(ctx.obj.create_aws_tokens())
+       
+@accounts.command("list_teams")
 @click.pass_context
 def list_teams(ctx):
     """List your available project teams"""
@@ -98,7 +130,7 @@ def list_teams(ctx):
     click.echo("ID | Name")
     click.echo("-----------------")
     for team in ctx.obj.list_teams():
-        if (team['team_id'] == ctx.obj.EPIC_TEAM):
+        if team['team_id'] == ctx.obj.EPIC_TEAM:
             click.echo(str(team['team_id']) + "* | " + team['name'])
         else:
             click.echo(str(team['team_id']) + " | " + team['name'])
@@ -110,6 +142,11 @@ def data(ctx):
     """Data Management"""
     pass
 
+@data.command()
+@click.pass_context
+def get_arn(ctx):
+    """Get the ARN for the user's S3 Bucket"""
+    pprint.pprint(ctx.obj.get_s3_location())
 
 @data.command()
 @click.pass_context
@@ -128,6 +165,15 @@ def list(ctx, filepath):
         path = file['obj_key'].split('/', 1)[1]
         click.echo('/' + path)
 
+@data.command()
+@click.pass_context
+@click.argument("filepath")
+@click.option('--dryrun',is_flag=True)
+def remove(ctx, filepath, dryrun):
+    """Delete a file from EPIC"""
+    pprint.pprint("Deleting file %s"%filepath)
+    ctx.obj.delete_file(filepath, dryrun)
+    pprint.pprint("Removed")
 
 @data.command()
 @click.pass_context
@@ -186,7 +232,7 @@ def move(ctx,source,destination,dryrun):
         click.echo('Moving %s to %s'%(source,destination))
         ctx.obj.move_file(source,destination,dryrun)
         click.echo('Move complete')
-    except Exception as e
+    except Exception as e:
         print("Move failed, %s" % e)
 
 
@@ -195,7 +241,6 @@ def move(ctx,source,destination,dryrun):
 def job(ctx):
     """Submit or manage your EPIC jobs"""
     pass
-
 
 @job.command()
 @click.pass_context
@@ -221,6 +266,35 @@ def submit(ctx):
     response = ctx.obj.create_job(job_definition)
     click.echo('Submitted, JobID: ' + str(response))
 
+@job.command()
+@click.pass_context
+def list_jobs(ctx):
+    """List active jobs"""
+    pprint.pprint(ctx.obj.list_job_status)
+
+@job.command()
+@click.argument('app_id')
+@click.argument('app_version_id')
+@click.pass_context
+def cluster_list(ctx,app_id, app_version_id):
+    """List the clusters available for a given app"""
+    pprint.pprint(ctx.obj.list_clusters(app_id, app_version_id))
+
+@job.command()
+@click.pass_context
+@click.argument('job_id')
+def cancel(ctx, job_id):
+    """Cancel a job"""
+    pprint.pprint("Job cancelled.")
+    pprint.pprint(ctx.obj.cancel_job(job_id))
+
+@job.command()
+@click.pass_context
+@click.argument('job_id')
+def delete(ctx, job_id):
+    """Delete a job"""
+    pprint.pprint("Job deleted.")
+    pprint.pprint(ctx.obj.delete_job(job_id))
 
 @job.command()
 @click.pass_context

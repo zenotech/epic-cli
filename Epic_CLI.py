@@ -102,7 +102,7 @@ def aws_get():
 @accounts.command()
 def aws_create():
     """Create AWS Credentials, if the don't already exist"""
-    response = post_request('/accounts/aws/create/', get_request_headers())
+    response = post_request('/accounts/aws/create/',, get_request_headers())
     for i in response:
         print(i + ": " + response[i])
 
@@ -138,7 +138,7 @@ def data():
 
 
 @data.command()
-def aws_get():
+def aws_data_get():
     """Get the ARN for the User's S3 Bucket"""
     response = get_request('/data/aws/get/', get_request_headers())
     print("ARN: " + response)

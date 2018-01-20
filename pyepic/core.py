@@ -50,7 +50,7 @@ class EpicClient(object):
             except ValueError:
                 return "No Response"
 
-    def _post_request(self, url, params, headers=None):
+    def _post_request(self, url, params={}, headers=None):
         if headers is None:
             headers = self._get_request_headers()
         r = requests.post(
@@ -145,24 +145,22 @@ class EpicClient(object):
         return response
 
     def delete_user_notification(self):
-        r = requests.delete(BASE_URL + '/accounts/notifications/',
+        r = requests.delete(urls.NOTIFICATIONS,
                             headers=self._get_request_headers())
         if r.status_code != 200:
             raise ResponseError
-        else:
-            return True
 
     def get_aws_tokens(self):
         response = self._get_request(urls.AWS_GET)
         return response
 
     def create_aws_tokens(self):
-        response = self._get_request(urls.AWS_CREATE)
+        response = self._post_request(urls.AWS_CREATE)
         return response
 
     def list_teams(self):
         return self._get_request(urls.TEAMS_LIST)
-
+    
     def create_team(self, team_specification={}):
         response = self._post_request(urls.TEAMS_CREATE,team_specification)
         return self.list_teams()
