@@ -2,14 +2,15 @@
 [![Build
 Status](https://travis-ci.org/zenotech/epic-cli.svg?branch=master)](https://travis-ci.org/zenotech/epic-cli) [![Updates](https://pyup.io/repos/github/zenotech/epic-cli/shield.svg)](https://pyup.io/repos/github/zenotech/epic=cli/)
 
-[EPIC](epic.zenotech.com) is a cloud platform for interfacing with HPC resources. This Python CLI demonstrates the REST API exposed on the EPIC platform and allows basic usage of the platform through the command line.
+[EPIC](epic.zenotech.com) is a cloud platform for interfacing with HPC resources. This Python CLI demonstrates the `pyepic` module, which interfaces with the EPIC REST API.
 
-The CLI is built using [Click](http://click.pocoo.org/6/) to handle boilerplate and is packaged over pypi. To install for development purposes: clone the repo, create a venv and install the requirements.txt into it. Alternatively for normal usage run `pip install --editable .` with SU privallages to compile and install the entire package. Then run `Epic_CLI --help` for further guidance on how to continue.
+Once this repo has been cloned, install `epiccli` by navigating to the root directory and running `pip install --editable .`
 
-By default the CLI points to the EPIC Production site, however for devleopment purposes the `EPIC_API_ENDPOINT` environment variable may be set to instead make it point to a QA or Dev site instead.
+The CLI is built using [Click](http://click.pocoo.org/6/) to handle boilerplate and is packaged over pypi. Once installed, run `epiccli configure` to generate the configuration file for the program. Multiple configuration files can be stored and can be chosen between using the `--config` flag. By default the file at `~/.epic/config` is loaded. 
 
-The first step is to authenticate with EPIC. Running `Epic_CLI auth` will prompt for login details and store the recieved authentication token in an EPIC configuration file, by default at `~/.epic/conf`. This allows you to stay authenticated for the rest of your sessions, if you would like to authenticate as a different user, just run auth again.
+The file `Epic_CLI.py` contains a deprecated version of EpicCLI which consists of the functionalities of `pyepic` and `epiccli` combined. It is left for reference reasons.
 
+The `pyepic` module manages interactions with the EPIC REST API. It uses the [Requests](http://docs.python-requests.org/en/master/) and [boto3](https://boto3.readthedocs.io/en/latest/) modules to make expose methods to the user abstracting the more complicated HTTP requests that occur under the hood.
 
 
 For further documentation, a full API schema is available at https://epic.zenotech.com/api/v1/schema 

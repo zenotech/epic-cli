@@ -6,6 +6,11 @@ import boto3
 from botocore import exceptions
 from re import search
 
+'''
+LEGACY MODULE, DEPRECATED AND MOVED OUT INTO PyEpic Module and epiccli.py 
+'''
+
+
 BASE_URL = os.environ.get(
     'EPIC_API_ENDPOINT', "https://epic.zenotech.com/api/v1")
 DIR = os.path.expanduser('~/.epic')
