@@ -3,6 +3,7 @@ import pyfiglet
 import os
 import errno
 import pprint
+import json
 import ConfigParser
 from pyepic.core import EpicClient
 from pyepic.exceptions import ConfigurationException
@@ -251,17 +252,28 @@ def list_queues(ctx):
 
 @job.command()
 @click.pass_context
-def submit(ctx):
-    """Submit a new job to EPIC"""
+@click.argument('appoptions',type=click.File('rb'), required=False)
+def submit(ctx,appoptions):
+    """Submit a new job to EPIC. AppOptions should be a plain text JSON formatted file that defines the specific
+    options required for the application chosen."""
     name = str(raw_input("Job Name: "))
     app_id = int(raw_input("App Version ID: "))
     queue_id = int(raw_input("Queue ID: "))
     working_dir = str(raw_input("Base Directory: "))
+    if appoptions is not None:
+        try:
+            app_options = json.loads(appoptions.read())
+        except ValueError:
+            print("AppOptions not a correctly formatted JSON file.")
+            return
+    else:
+        app_options = {}
     job_definition = {
         "name": name,
         "app_id": app_id,
         "queue_id": queue_id,
-        "working_dir_key": working_dir
+        "working_dir_key": working_dir,
+        "appoptions": app_options
     }
     response = ctx.obj.create_job(job_definition)
     click.echo('Submitted, JobID: ' + str(response))
