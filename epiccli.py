@@ -249,6 +249,20 @@ def list_queues(ctx):
     """List current status of available queues"""
     pprint.pprint(ctx.obj.list_queue_status())
 
+def get_app_id(ctx):
+    apps = ctx.obj.list_applications()
+    for i in range(0,len(apps)):
+        print(str(i) + ": " + apps[i]['product']['name'])
+    app_name = apps[click.prompt("Select an application number: ", type = int)]['product']['name']
+    for app in apps:
+        if app[u'product'][u'name'] == app_name:
+            versions = ctx.obj.list_application_versions(app[u'id'])
+            print("Please select an application version: ")
+            for i in range(0,len(versions)):
+                print(str(i) + ": " + versions[i][u'version'])
+            version = click.prompt("Number: " , type=int)
+            return versions[version][u'id']
+    raise NameError 
 
 @job.command()
 @click.pass_context
@@ -257,7 +271,11 @@ def submit(ctx,appoptions):
     """Submit a new job to EPIC. AppOptions should be a plain text JSON formatted file that defines the specific
     options required for the application chosen."""
     name = str(raw_input("Job Name: "))
-    app_id = int(raw_input("App Version ID: "))
+    try:
+        app_id = get_app_id(ctx)
+    except NameError:
+        print("Application name/version not found in EPIC. Please use job/list_apps and job/versions to find valid versions.")
+        return
     queue_id = int(raw_input("Queue ID: "))
     working_dir = str(raw_input("Base Directory: "))
     if appoptions is not None:

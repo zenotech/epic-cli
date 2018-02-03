@@ -8,3 +8,5 @@ epiccli\.egg-info/
 
 dist/
 .tox/
+
+\.vscode/
