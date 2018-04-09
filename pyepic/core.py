@@ -3,10 +3,11 @@ import requests
 import urls
 from re import search
 import boto3
+import errno
 
 from botocore.exceptions import ClientError
 
-from ConfigParser import SafeConfigParser
+from ConfigParser import SafeConfigParser, RawConfigParser
 
 from .exceptions import ConfigurationException
 from .exceptions import ResponseError
@@ -102,6 +103,7 @@ class EpicClient(object):
         self.EPIC_PROJECT = 0
         if config_file is not None:
             self._load_config_file(config_file)
+            self._config_file = config_file
         self.EPIC_API_URL = os.environ.get('EPIC_API_ENDPOINT', self.EPIC_API_URL)
         self.EPIC_TOKEN = os.environ.get('EPIC_TOKEN', self.EPIC_TOKEN)
         self.EPIC_TEAM = int(os.environ.get('EPIC_TEAM', self.EPIC_TEAM))
@@ -131,6 +133,25 @@ class EpicClient(object):
         else:
             raise ConfigurationException(
                 "Invalid EPIC configuration file %s" % file)
+
+    def write_config_file(self, file = None):
+        output_file = file if file is not None else self._config_file
+        if output_file is None:
+            raise ConfigurationException("Valid config file not specified for write_config_file")
+        config = RawConfigParser()
+        config.add_section('epic')
+        config.set('epic', 'url', self.EPIC_API_URL)
+        config.set('epic', 'token', self.EPIC_TOKEN)
+        config.set('epic', 'default_team', self.EPIC_TEAM)
+        config.set('epic', 'default_project', self.EPIC_PROJECT)
+        config_file = os.path.expanduser(output_file)
+        try:
+            os.makedirs(os.path.dirname(config_file))
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+        with open(config_file, 'wb') as configfile:
+            config.write(configfile)
 
     def get_security_token(self, username, password):
         params = {'username': username, 'password': password}

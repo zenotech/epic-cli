@@ -81,7 +81,6 @@ def billing(ctx):
     """  Billing Management """
     pass
 
-
 @billing.command("list_projects")
 @click.pass_context
 def list_projectcodes(ctx):
@@ -94,6 +93,12 @@ def list_projectcodes(ctx):
 @click.pass_context
 def accounts(ctx):
     """Account Management"""
+    pass
+
+@main.group()
+@click.pass_context
+def teams(ctx):
+    """Team Management"""
     pass
 
 @accounts.command()
@@ -123,19 +128,6 @@ def aws_create(ctx):
     """Create EPIC AWS Credentials if they don't already exist"""
     pprint.pprint(ctx.obj.create_aws_tokens())
        
-@accounts.command("list_teams")
-@click.pass_context
-def list_teams(ctx):
-    """List your available project teams"""
-    click.echo("Your available EPIC Teams (* current team)")
-    click.echo("ID | Name")
-    click.echo("-----------------")
-    for team in ctx.obj.list_teams():
-        if team['team_id'] == ctx.obj.EPIC_TEAM:
-            click.echo(str(team['team_id']) + "* | " + team['name'])
-        else:
-            click.echo(str(team['team_id']) + " | " + team['name'])
-
 
 @main.group()
 @click.pass_context
@@ -364,6 +356,44 @@ def costs(ctx, appid, tasklist):
     }
     pprint.pprint(ctx.obj.get_job_costs(job_definition))
 
+@teams.command()
+@click.pass_context
+def list(ctx):
+    """List your available EPIC teams"""
+    click.echo("Your available EPIC Teams (* current team)")
+    click.echo("ID | Name")
+    click.echo("-----------------")
+    for team in ctx.obj.list_teams():
+        if team['team_id'] == ctx.obj.EPIC_TEAM:
+            click.echo(str(team['team_id']) + "* | " + team['name'])
+        else:
+            click.echo(str(team['team_id']) + " | " + team['name'])
+
+@teams.command()
+@click.pass_context
+@click.argument('id', "ID to switch to", nargs=-1, required=False, type=int)
+def switch(ctx, id):
+    """Switch your active EPIC team"""
+    if id:
+        new_team_id = id[0]
+        teams_list = ctx.obj.list_teams()
+    else:
+        click.echo("Your available EPIC Teams (* current team)")
+        click.echo("ID | Name")
+        click.echo("-----------------")
+        teams_list = ctx.obj.list_teams()
+        for team in teams_list:
+            if team['team_id'] == ctx.obj.EPIC_TEAM:
+                click.echo(str(team['team_id']) + "* | " + team['name'])
+            else:
+                click.echo(str(team['team_id']) + " | " + team['name'])
+        new_team_id = click.prompt("Enter the ID of the team you would like to switch to", type=int, default=ctx.obj.EPIC_TEAM)
+    if not any(team['team_id'] == int(new_team_id) for team in teams_list):
+        click.echo("Sorry, team with ID %s does not exist" % new_team_id)
+    else:
+        ctx.obj.EPIC_TEAM = int(new_team_id)
+        ctx.obj.write_config_file()
+        click.echo("Team ID set to %s" % new_team_id)
 
 if __name__ == '__main__':
     main()
