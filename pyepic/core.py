@@ -213,7 +213,7 @@ class EpicClient(object):
                             aws_secret_access_key=creds['aws_secret_key'])
         if not dryrun:
             s3.Bucket(bucket['bucket']).upload_file(
-                source, os.path.join(bucket['prefix'], destination))
+                source, os.path.join(bucket['prefix'], *destination.split("/")))
 
     def download_file(self, source, destination, status_callback=None, dryrun=False):
         creds = self.get_aws_credentials()
@@ -223,10 +223,10 @@ class EpicClient(object):
                             aws_secret_access_key=creds['aws_secret_key'])
         if status_callback is not None:
             status_callback('Downloading %s to %s %s' % (os.path.join(
-                bucket['prefix'], source), destination, "(dryrun)" if dryrun else ""))
+                *source.split("/")), destination, "(dryrun)" if dryrun else ""))
         if not dryrun:
             s3.Bucket(bucket['bucket']).download_file(
-                os.path.join(bucket['prefix'], source), destination)
+                os.path.join(bucket['prefix'], *source.split("/")), destination)
 
     def download_fileobj(self, source, destination_obj, status_callback=None, dryrun=False):
         creds = self.get_aws_credentials()
@@ -236,9 +236,9 @@ class EpicClient(object):
                             aws_secret_access_key=creds['aws_secret_key'])
         if status_callback is not None:
             status_callback(
-                'Downloading %s to object %s' % (os.path.join(bucket['prefix'], source), "(dryrun)" if dryrun else ""))
+                'Downloading %s to object %s' % (os.path.join(*source.split("/")), "(dryrun)" if dryrun else ""))
         if not dryrun:
-            s3.Bucket(bucket['bucket']).download_fileobj(os.path.join(bucket['prefix'], source), destination_obj)
+            s3.Bucket(bucket['bucket']).download_fileobj(os.path.join(bucket['prefix'], *source.split("/")), destination_obj)
 
     def upload_directory(self, source_dir, destination_prefix, rel_to='.', status_callback=None, dryrun=False):
         creds = self.get_aws_credentials()
@@ -246,14 +246,14 @@ class EpicClient(object):
         s3 = boto3.resource('s3',
                             aws_access_key_id=creds['aws_key_id'],
                             aws_secret_access_key=creds['aws_secret_key'])
+        source_dir_count = len(source_dir.split(os.path.sep)) - 1
         for root, dirs, files in os.walk(source_dir):
             for filename in files:
                 local_path = os.path.join(root, filename)
-                relative_path = os.path.relpath(local_path, rel_to)
-                s3_path = os.path.join(bucket['bucket'], bucket[
-                    'prefix'], destination_prefix, relative_path)
+                trailing_dir = root.split(os.path.sep)[source_dir_count:]
+                relative_path = os.path.join(os.path.join(os.path.sep, *trailing_dir), filename)
                 key = os.path.join(
-                    bucket['prefix'], destination_prefix.strip("/"), relative_path)
+                    bucket['prefix'], destination_prefix.strip("/"), *relative_path.split("/"))
                 try:
                     s3.Object(bucket['bucket'], key).load()
                     if status_callback is not None:
