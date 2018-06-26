@@ -289,9 +289,9 @@ class EpicClient(object):
                     s3.Bucket(bucket['bucket']).download_file(
                         obj.key, filename)
                 except ClientError as e:
-                    print e
+                    raise e
 
-    def move_file(self, source, destination, dryrun=False):
+    def copy_file(self, source, destination, dryrun=False):
         creds = self.get_aws_credentials()
         bucket = self.get_s3_information()
         s3 = boto3.resource('s3',
@@ -299,10 +299,15 @@ class EpicClient(object):
                             aws_secret_access_key=creds['aws_secret_key'])
         if not dryrun:
             try:
-                s3.Bucket(bucket['bucket']).copy(source, destination)
-                s3.Bucket(bucket['bucket']).delete_objects(Delete={'Objects': [{'Key': source}]})
+                s3.Bucket(bucket['bucket']).copy({'Bucket': bucket['bucket'],
+                    'Key': os.path.join(bucket['prefix'], *source.split("/"))},
+                    os.path.join(bucket['prefix'], *destination.split("/")))
             except ClientError as e:
-                print e
+                raise e
+
+    def move_file(self, source, destination, dryrun=False):
+        self.copy_file(source, destination, dryrun)
+        self.delete_file(source, dryrun)
 
     def list_job_status(self):
         return self._get_request(urls.BATCH_JOB_LIST)
