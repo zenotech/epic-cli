@@ -7,7 +7,7 @@ from botocore import exceptions
 from re import search
 
 '''
-LEGACY MODULE, DEPRECATED AND MOVED OUT INTO PyEpic Module and epiccli.py 
+LEGACY MODULE, DEPRECATED AND MOVED OUT INTO PyEpic Module and epiccli.py
 '''
 
 
