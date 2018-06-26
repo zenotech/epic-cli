@@ -229,6 +229,21 @@ def upload(ctx, source, destination, dryrun):
         print("Upload failed, %s" % e)
 
 
+@data.command("cp")
+@click.pass_context
+@click.argument("source")
+@click.argument("destination")
+@click.option('--dryrun', is_flag=True)
+def copy(ctx, source, destination, dryrun):
+    """Copy a file from one location to another in EPIC"""
+    try:
+        click.echo('Copying %s to %s' % (source, destination))
+        ctx.obj.copy_file(source, destination, dryrun)
+        click.echo('Copy complete')
+    except Exception as e:
+        print("Copy failed, %s" % e)
+
+
 @data.command("mv")
 @click.pass_context
 @click.argument("source")

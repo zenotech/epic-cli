@@ -291,7 +291,7 @@ class EpicClient(object):
                 except ClientError as e:
                     print e
 
-    def move_file(self, source, destination, dryrun=False):
+    def copy_file(self, source, destination, dryrun=False):
         creds = self.get_aws_credentials()
         bucket = self.get_s3_information()
         s3 = boto3.resource('s3',
@@ -300,6 +300,18 @@ class EpicClient(object):
         if not dryrun:
             try:
                 s3.Bucket(bucket['bucket']).copy(source, destination)
+            except ClientError as e:
+                print e
+
+    def move_file(self, source, destination, dryrun=False):
+        creds = self.get_aws_credentials()
+        bucket = self.get_s3_information()
+        s3 = boto3.resource('s3',
+                            aws_access_key_id=creds['aws_key_id'],
+                            aws_secret_access_key=creds['aws_secret_key'])
+        if not dryrun:
+            self.copy_file(source, destination, dryrun)
+            try:
                 s3.Bucket(bucket['bucket']).delete_objects(Delete={'Objects': [{'Key': source}]})
             except ClientError as e:
                 print e
