@@ -81,6 +81,7 @@ def billing(ctx):
     """  Billing Management """
     pass
 
+
 @billing.command("list_projects")
 @click.pass_context
 def list_projectcodes(ctx):
@@ -89,17 +90,20 @@ def list_projectcodes(ctx):
     for project in ctx.obj.list_project_codes():
         pprint.pprint(project)
 
+
 @main.group()
 @click.pass_context
 def accounts(ctx):
     """Account Management"""
     pass
 
+
 @main.group()
 @click.pass_context
 def teams(ctx):
     """Team Management"""
     pass
+
 
 @accounts.command()
 @click.pass_context
@@ -110,17 +114,20 @@ def notifications(ctx):
     for item in notifications:
         pprint.pprint(item)
 
+
 @accounts.command()
 @click.pass_context
 def clear(ctx):
     """Clear user notifications"""
     ctx.obj.delete_user_notifications()
 
+
 @accounts.command()
 @click.pass_context
 def aws_get(ctx):
     """Get the user's EPIC AWS credentials"""
     pprint.pprint(ctx.obj.get_aws_tokens())
+
 
 @accounts.command()
 @click.pass_context
@@ -135,13 +142,15 @@ def data(ctx):
     """Data Management"""
     pass
 
+
 @data.command()
 @click.pass_context
 def get_arn(ctx):
     """Get the ARN for the user's S3 Bucket"""
     pprint.pprint(ctx.obj.get_s3_location())
 
-@data.command()
+
+@data.command("ls")
 @click.pass_context
 @click.argument("filepath", required=False, type=str)
 def list(ctx, filepath):
@@ -161,15 +170,17 @@ def list(ctx, filepath):
     except Exception as e:
         click.echo("Error: {}".format(str(e)))
 
-@data.command()
+
+@data.command("rm")
 @click.pass_context
 @click.argument("filepath")
-@click.option('--dryrun',is_flag=True)
+@click.option('--dryrun', is_flag=True)
 def remove(ctx, filepath, dryrun):
     """Delete a file from EPIC"""
-    pprint.pprint("Deleting file %s"%filepath)
+    pprint.pprint("Deleting file %s" % filepath)
     ctx.obj.delete_file(filepath, dryrun)
     pprint.pprint("Removed")
+
 
 @data.command()
 @click.pass_context
@@ -217,16 +228,17 @@ def upload(ctx, source, destination, dryrun):
     except Exception as e:
         print("Upload failed, %s" % e)
 
-@data.command()
+
+@data.command("mv")
 @click.pass_context
 @click.argument("source")
 @click.argument("destination")
 @click.option('--dryrun', is_flag=True)
-def move(ctx,source,destination,dryrun):
+def move(ctx, source, destination, dryrun):
     """Move a file from one location to another in EPIC"""
     try:
-        click.echo('Moving %s to %s'%(source,destination))
-        ctx.obj.move_file(source,destination,dryrun)
+        click.echo('Moving %s to %s' % (source, destination))
+        ctx.obj.move_file(source, destination, dryrun)
         click.echo('Move complete')
     except Exception as e:
         print("Move failed, %s" % e)
@@ -238,31 +250,34 @@ def job(ctx):
     """Submit or manage your EPIC jobs"""
     pass
 
+
 @job.command()
 @click.pass_context
 def list_queues(ctx):
     """List current status of available queues"""
     pprint.pprint(ctx.obj.list_queue_status())
 
+
 def get_app_id(ctx):
     apps = ctx.obj.list_applications()
-    for i in range(0,len(apps)):
+    for i in range(0, len(apps)):
         print(str(i) + ": " + apps[i]['product']['name'])
-    app_name = apps[click.prompt("Select an application number: ", type = int)]['product']['name']
+    app_name = apps[click.prompt("Select an application number: ", type=int)]['product']['name']
     for app in apps:
         if app[u'product'][u'name'] == app_name:
             versions = ctx.obj.list_application_versions(app[u'id'])
             print("Please select an application version: ")
-            for i in range(0,len(versions)):
+            for i in range(0, len(versions)):
                 print(str(i) + ": " + versions[i][u'version'])
-            version = click.prompt("Number: " , type=int)
+            version = click.prompt("Number: ", type=int)
             return versions[version][u'id']
     raise NameError
 
+
 @job.command()
 @click.pass_context
-@click.argument('appoptions',type=click.File('rb'), required=False)
-def submit(ctx,appoptions):
+@click.argument('appoptions', type=click.File('rb'), required=False)
+def submit(ctx, appoptions):
     """Submit a new job to EPIC. AppOptions should be a plain text JSON formatted file that defines the specific
     options required for the application chosen."""
     name = str(raw_input("Job Name: "))
@@ -291,19 +306,22 @@ def submit(ctx,appoptions):
     response = ctx.obj.create_job(job_definition)
     click.echo('Submitted, JobID: ' + str(response))
 
+
 @job.command()
 @click.pass_context
 def list_jobs(ctx):
     """List active jobs"""
     pprint.pprint(ctx.obj.list_job_status)
 
+
 @job.command()
 @click.argument('app_id')
 @click.argument('app_version_id')
 @click.pass_context
-def cluster_list(ctx,app_id, app_version_id):
+def cluster_list(ctx, app_id, app_version_id):
     """List the clusters available for a given app"""
     pprint.pprint(ctx.obj.list_clusters(app_id, app_version_id))
+
 
 @job.command()
 @click.pass_context
@@ -313,6 +331,7 @@ def cancel(ctx, job_id):
     pprint.pprint("Job cancelled.")
     pprint.pprint(ctx.obj.cancel_job(job_id))
 
+
 @job.command()
 @click.pass_context
 @click.argument('job_id')
@@ -320,6 +339,7 @@ def delete(ctx, job_id):
     """Delete a job"""
     pprint.pprint("Job deleted.")
     pprint.pprint(ctx.obj.delete_job(job_id))
+
 
 @job.command()
 @click.pass_context
@@ -359,6 +379,7 @@ def costs(ctx, appid, tasklist):
     }
     pprint.pprint(ctx.obj.get_job_costs(job_definition))
 
+
 @teams.command()
 @click.pass_context
 def list(ctx):
@@ -371,6 +392,7 @@ def list(ctx):
             click.echo(str(team['team_id']) + "* | " + team['name'])
         else:
             click.echo(str(team['team_id']) + " | " + team['name'])
+
 
 @teams.command()
 @click.pass_context
@@ -397,6 +419,7 @@ def switch(ctx, id):
         ctx.obj.EPIC_TEAM = int(new_team_id)
         ctx.obj.write_config_file()
         click.echo("Team ID set to %s" % new_team_id)
+
 
 if __name__ == '__main__':
     main()

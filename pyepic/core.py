@@ -134,7 +134,7 @@ class EpicClient(object):
             raise ConfigurationException(
                 "Invalid EPIC configuration file %s" % file)
 
-    def write_config_file(self, file = None):
+    def write_config_file(self, file=None):
         output_file = file if file is not None else self._config_file
         if output_file is None:
             raise ConfigurationException("Valid config file not specified for write_config_file")
@@ -181,9 +181,9 @@ class EpicClient(object):
 
     def list_teams(self):
         return self._get_request(urls.TEAMS_LIST)
-    
+
     def create_team(self, team_specification={}):
-        response = self._post_request(urls.TEAMS_CREATE,team_specification)
+        response = self._post_request(urls.TEAMS_CREATE, team_specification)
         return self.list_teams()
 
     def get_s3_location(self):
@@ -196,7 +196,7 @@ class EpicClient(object):
             params = None
         return self._get_request(urls.DATA_LIST, params)
 
-    def delete_file(self, source,dryrun):
+    def delete_file(self, source, dryrun):
         creds = self.get_aws_credentials()
         bucket = self.get_s3_information()
         s3 = boto3.resource('s3',
@@ -320,15 +320,15 @@ class EpicClient(object):
         return self._post_request(urls.BATCH_JOB_CREATE, job_definition)
 
     def cancel_job(self, job_id):
-        self._post_request(urls.BATCH_JOB_CANCEL,{'pk': job_id})
+        self._post_request(urls.BATCH_JOB_CANCEL, {'pk': job_id})
         return self.list_job_status()
 
-    def list_clusters(self,app_id,app_version_id):
-        response = self._get_request(urls.CLUST_LIST+str(app_id)+'/'+str(app_version_id)+'/resources/')
+    def list_clusters(self, app_id, app_version_id):
+        response = self._get_request(urls.CLUST_LIST + str(app_id) + '/' + str(app_version_id) + '/resources/')
         return response
 
-    def delete_job(self,job_id):
-        self._post_request(urls.BATCH_JOB_DELETE,{'job_id':job_id})
+    def delete_job(self, job_id):
+        self._post_request(urls.BATCH_JOB_DELETE, {'job_id': job_id})
         return self.list_job_status()
 
     def list_applications(self):
