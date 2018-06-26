@@ -26,6 +26,7 @@ class EpicClient(object):
 
     def __init__(self, epic_url=None, epic_token=None, config_file=None):
         super(EpicClient, self).__init__()
+        self._s3 = None
         self._load_config(epic_url, epic_token, config_file)
         self._check_config()
 
@@ -65,22 +66,15 @@ class EpicClient(object):
                 return "No Response"
 
     def _create_boto_client(self):
-        creds = self._get_request('/accounts/aws/get/', self._get_request_headers())
+        creds = self.get_aws_credentials()
         client = boto3.resource('s3',
                                 aws_access_key_id=creds['aws_key_id'],
                                 aws_secret_access_key=creds['aws_secret_key'])
-        arn = self._get_request('/data/aws/get', self._get_request_headers())
-        try:
-            bucket = search(r'[a-z-]+/', arn).group(0).rstrip('/')
-            prefix = search(r'\d{2,}', arn.lstrip('arn:aws:s3:::')).group(0)
-            print(bucket, prefix)
-        except IndexError as e:
-            print("Bucket Error: " + e.message)
-            return
-        return {'client': client, 'bucket': bucket, 'key': prefix}
+        info = self.get_s3_information()
+        info.update({'client': client})
+        return info
 
     def get_s3_information(self):
-        headers = self._get_request_headers()
         arn = self._get_request(urls.DATA_LOCATION)
         try:
             bucket = search(r'[a-z-]+/', arn).group(0).rstrip('/')
@@ -90,7 +84,6 @@ class EpicClient(object):
         return {'bucket': bucket, 'prefix': prefix, 'arn': arn}
 
     def get_aws_credentials(self):
-        headers = self._get_request_headers()
         return self._get_request(urls.ACCOUNT_CREDENTIALS)
 
     def _load_config(self, epic_url=None, epic_token=None, config_file=None):
@@ -189,6 +182,13 @@ class EpicClient(object):
     def get_s3_location(self):
         return self._get_request(urls.AWS_DATA_GET)
 
+    @property
+    def s3(self):
+        if self._s3 is None:
+            c = self._create_boto_client()
+            self._s3 = c['client']
+        return self._s3
+
     def list_data_locations(self, filepath):
         if filepath is not None:
             params = {'dir': filepath}
@@ -197,55 +197,35 @@ class EpicClient(object):
         return self._get_request(urls.DATA_LIST, params)
 
     def delete_file(self, source, dryrun):
-        creds = self.get_aws_credentials()
         bucket = self.get_s3_information()
-        s3 = boto3.resource('s3',
-                            aws_access_key_id=creds['aws_key_id'],
-                            aws_secret_access_key=creds['aws_secret_key'])
         if not dryrun:
-            s3.Bucket(bucket['bucket']).delete_objects(Delete={'Objects': [{'Key': source}]})
+            self.s3.Bucket(bucket['bucket']).delete_objects(Delete={'Objects': [{'Key': os.path.join(bucket['prefix'], *source.split("/"))}]})
 
     def upload_file(self, source, destination, dryrun=False):
-        creds = self.get_aws_credentials()
         bucket = self.get_s3_information()
-        s3 = boto3.resource('s3',
-                            aws_access_key_id=creds['aws_key_id'],
-                            aws_secret_access_key=creds['aws_secret_key'])
         if not dryrun:
-            s3.Bucket(bucket['bucket']).upload_file(
+            self.s3.Bucket(bucket['bucket']).upload_file(
                 source, os.path.join(bucket['prefix'], *destination.split("/")))
 
     def download_file(self, source, destination, status_callback=None, dryrun=False):
-        creds = self.get_aws_credentials()
         bucket = self.get_s3_information()
-        s3 = boto3.resource('s3',
-                            aws_access_key_id=creds['aws_key_id'],
-                            aws_secret_access_key=creds['aws_secret_key'])
         if status_callback is not None:
             status_callback('Downloading %s to %s %s' % (os.path.join(
                 *source.split("/")), destination, "(dryrun)" if dryrun else ""))
         if not dryrun:
-            s3.Bucket(bucket['bucket']).download_file(
+            self.s3.Bucket(bucket['bucket']).download_file(
                 os.path.join(bucket['prefix'], *source.split("/")), destination)
 
     def download_fileobj(self, source, destination_obj, status_callback=None, dryrun=False):
-        creds = self.get_aws_credentials()
         bucket = self.get_s3_information()
-        s3 = boto3.resource('s3',
-                            aws_access_key_id=creds['aws_key_id'],
-                            aws_secret_access_key=creds['aws_secret_key'])
         if status_callback is not None:
             status_callback(
                 'Downloading %s to object %s' % (os.path.join(*source.split("/")), "(dryrun)" if dryrun else ""))
         if not dryrun:
-            s3.Bucket(bucket['bucket']).download_fileobj(os.path.join(bucket['prefix'], *source.split("/")), destination_obj)
+            self.s3.Bucket(bucket['bucket']).download_fileobj(os.path.join(bucket['prefix'], *source.split("/")), destination_obj)
 
     def upload_directory(self, source_dir, destination_prefix, rel_to='.', status_callback=None, dryrun=False):
-        creds = self.get_aws_credentials()
         bucket = self.get_s3_information()
-        s3 = boto3.resource('s3',
-                            aws_access_key_id=creds['aws_key_id'],
-                            aws_secret_access_key=creds['aws_secret_key'])
         source_dir_count = len(source_dir.split(os.path.sep)) - 1
         for root, dirs, files in os.walk(source_dir):
             for filename in files:
@@ -255,7 +235,7 @@ class EpicClient(object):
                 key = os.path.join(
                     bucket['prefix'], destination_prefix.strip("/"), *relative_path.split("/"))
                 try:
-                    s3.Object(bucket['bucket'], key).load()
+                    self.s3.Object(bucket['bucket'], key).load()
                     if status_callback is not None:
                         status_callback('File found in data store, skipping %s %s' % (
                             key, "(dryrun)" if dryrun else ""))
@@ -265,16 +245,12 @@ class EpicClient(object):
                             "Uploading %s %s" % (os.path.join(bucket['prefix'], destination_prefix, relative_path),
                                                  "(dryrun)" if dryrun else ""))
                     if not dryrun:
-                        s3.Bucket(bucket['bucket']).upload_file(
+                        self.s3.Bucket(bucket['bucket']).upload_file(
                             local_path, key)
 
     def download_directory(self, source, destination, status_callback=None, dryrun=False):
-        creds = self.get_aws_credentials()
         bucket = self.get_s3_information()
-        s3 = boto3.resource('s3',
-                            aws_access_key_id=creds['aws_key_id'],
-                            aws_secret_access_key=creds['aws_secret_key'])
-        for obj in s3.Bucket(bucket['bucket']).objects.filter(Prefix=bucket['prefix'] + source):
+        for obj in self.s3.Bucket(bucket['bucket']).objects.filter(Prefix=bucket['prefix'] + source):
             filename = os.path.join(destination, obj.key.split("/", 1)[1])
             if status_callback is not None:
                 status_callback("Downloading %s to %s %s" % (
@@ -286,22 +262,18 @@ class EpicClient(object):
                 except OSError:
                     pass
                 try:
-                    s3.Bucket(bucket['bucket']).download_file(
+                    self.s3.Bucket(bucket['bucket']).download_file(
                         obj.key, filename)
                 except ClientError as e:
                     raise e
 
     def copy_file(self, source, destination, dryrun=False):
-        creds = self.get_aws_credentials()
         bucket = self.get_s3_information()
-        s3 = boto3.resource('s3',
-                            aws_access_key_id=creds['aws_key_id'],
-                            aws_secret_access_key=creds['aws_secret_key'])
         if not dryrun:
             try:
-                s3.Bucket(bucket['bucket']).copy({'Bucket': bucket['bucket'],
-                                                  'Key': os.path.join(bucket['prefix'], *source.split("/"))},
-                                                 os.path.join(bucket['prefix'], *destination.split("/")))
+                self.s3.Bucket(bucket['bucket']).copy({'Bucket': bucket['bucket'],
+                                                       'Key': os.path.join(bucket['prefix'], *source.split("/"))},
+                                                      os.path.join(bucket['prefix'], *destination.split("/")))
             except ClientError as e:
                 raise e
 
