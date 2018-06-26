@@ -127,7 +127,7 @@ def aws_get(ctx):
 def aws_create(ctx):
     """Create EPIC AWS Credentials if they don't already exist"""
     pprint.pprint(ctx.obj.create_aws_tokens())
-       
+
 
 @main.group()
 @click.pass_context
@@ -150,13 +150,16 @@ def list(ctx, filepath):
     click.echo("-----------------")
     if filepath:
         filepath = filepath.strip('/')
-    response = ctx.obj.list_data_locations(filepath)
-    for folder in response['folders']:
-        path = folder['obj_key'].split('/', 1)[1]
-        click.echo('/' + path)
-    for file in response['files']:
-        path = file['obj_key'].split('/', 1)[1]
-        click.echo('/' + path)
+    try:
+        response = ctx.obj.list_data_locations(filepath)
+        for folder in response['folders']:
+            path = folder['obj_key'].split('/', 1)[1]
+            click.echo('/' + path)
+        for file in response['files']:
+            path = file['obj_key'].split('/', 1)[1]
+            click.echo('/' + path)
+    except Exception as e:
+        click.echo("Error: {}".format(str(e)))
 
 @data.command()
 @click.pass_context
@@ -254,7 +257,7 @@ def get_app_id(ctx):
                 print(str(i) + ": " + versions[i][u'version'])
             version = click.prompt("Number: " , type=int)
             return versions[version][u'id']
-    raise NameError 
+    raise NameError
 
 @job.command()
 @click.pass_context
