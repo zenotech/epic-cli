@@ -300,8 +300,8 @@ class EpicClient(object):
         if not dryrun:
             try:
                 s3.Bucket(bucket['bucket']).copy({'Bucket': bucket['bucket'],
-                    'Key': os.path.join(bucket['prefix'], *source.split("/"))},
-                    os.path.join(bucket['prefix'], *destination.split("/")))
+                                                  'Key': os.path.join(bucket['prefix'], *source.split("/"))},
+                                                 os.path.join(bucket['prefix'], *destination.split("/")))
             except ClientError as e:
                 raise e
 
