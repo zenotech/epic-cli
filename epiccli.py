@@ -311,7 +311,7 @@ def submit(ctx, appoptions):
 @click.pass_context
 def list_jobs(ctx):
     """List active jobs"""
-    pprint.pprint(ctx.obj.list_job_status)
+    pprint.pprint(ctx.obj.list_job_status())
 
 
 @job.command()
