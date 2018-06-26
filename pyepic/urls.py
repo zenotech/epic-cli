@@ -20,5 +20,6 @@ BATCH_JOB_CANCEL = _URL_ROOT + 'batch/job/cancel/'
 CLUST_LIST = _URL_ROOT + 'batch/app/'
 BATCH_JOB_DELETE = _URL_ROOT + 'batch/job/delete/'
 
+
 def application_version(app_id):
     return _URL_ROOT + 'batch/app/' + str(app_id) + '/versions/'
