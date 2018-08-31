@@ -1,4 +1,4 @@
-# Epic by Zenotech - Command Line Inteface
+# Epic by Zenotech - Command Line Interface
 [![Build
 Status](https://travis-ci.org/zenotech/epic-cli.svg?branch=master)](https://travis-ci.org/zenotech/epic-cli) [![Updates](https://pyup.io/repos/github/zenotech/epic-cli/shield.svg)](https://pyup.io/repos/github/zenotech/epic-cli/)
 
