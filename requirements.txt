@@ -1,5 +1,5 @@
 pyfiglet==0.7.5
 requests==2.19.1
 Click==6.7
-boto3==1.7.63
+boto3==1.9.40
 
