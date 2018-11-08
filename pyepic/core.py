@@ -3,14 +3,20 @@ import requests
 import urls
 from re import search
 import boto3
+import botocore
 import errno
+import datetime
+import pytz
 
 from botocore.exceptions import ClientError
 
 from ConfigParser import SafeConfigParser, RawConfigParser
 
-from .exceptions import ConfigurationException
-from .exceptions import ResponseError
+from .exceptions import (
+    ConfigurationException,
+    CommandError,
+    ResponseError
+)
 
 
 class EpicJob(object):
@@ -26,7 +32,9 @@ class EpicClient(object):
 
     def __init__(self, epic_url=None, epic_token=None, config_file=None):
         super(EpicClient, self).__init__()
-        self._s3 = None
+        self._s3_resource = None
+        self._s3_client = None
+        self._s3_info = None
         self._load_config(epic_url, epic_token, config_file)
         self._check_config()
 
@@ -66,15 +74,18 @@ class EpicClient(object):
                 return "No Response"
 
     def _create_boto_client(self):
-        creds = self.get_aws_credentials()
-        client = boto3.resource('s3',
-                                aws_access_key_id=creds['aws_key_id'],
-                                aws_secret_access_key=creds['aws_secret_key'])
-        info = self.get_s3_information()
-        info.update({'client': client})
-        return info
+        creds = self.get_or_create_aws_tokens()
+        self._s3_resource = boto3.resource('s3',
+                                       aws_access_key_id=creds['aws_key_id'],
+                                       aws_secret_access_key=creds['aws_secret_key'])
+        self._s3_client = boto3.client('s3',
+                                   aws_access_key_id=creds['aws_key_id'],
+                                   aws_secret_access_key=creds['aws_secret_key'])       
+        self._s3_info = self.get_s3_information()
 
     def get_s3_information(self):
+        if self._s3_info:
+            return self._s3_info
         arn = self._get_request(urls.DATA_LOCATION)
         try:
             bucket = search(r'[a-z-]+/', arn).group(0).rstrip('/')
@@ -168,6 +179,10 @@ class EpicClient(object):
         response = self._get_request(urls.AWS_GET)
         return response
 
+    def get_or_create_aws_tokens(self):
+        response = self._post_request(urls.AWS_CREATE)
+        return response
+
     def create_aws_tokens(self):
         response = self._post_request(urls.AWS_CREATE)
         return response
@@ -184,10 +199,15 @@ class EpicClient(object):
 
     @property
     def s3(self):
-        if self._s3 is None:
-            c = self._create_boto_client()
-            self._s3 = c['client']
-        return self._s3
+        if self._s3_resource is None:
+            self._create_boto_client()
+        return self._s3_resource
+
+    @property
+    def s3_client(self):
+        if self._s3_client is None:
+            self._create_boto_client()
+        return self._s3_client
 
     def list_data_locations(self, filepath):
         if filepath is not None:
@@ -196,16 +216,29 @@ class EpicClient(object):
             params = None
         return self._get_request(urls.DATA_LIST, params)
 
+    def get_key_info(self, key):
+        s3_info = self.get_s3_information()
+        try:
+            return self.s3_client.head_object(Bucket=s3_info['bucket'], Key=key)
+        except botocore.exceptions.ClientError as e:
+            return None
+
     def delete_file(self, source, dryrun):
         bucket = self.get_s3_information()
         if not dryrun:
             self.s3.Bucket(bucket['bucket']).delete_objects(Delete={'Objects': [{'Key': os.path.join(bucket['prefix'], *source.split("/"))}]})
+
+    def _upload_file(self, bucket, source_file, destination_key):
+        self.s3_client.upload_file(source_file, bucket, destination_key)
 
     def upload_file(self, source, destination, dryrun=False):
         bucket = self.get_s3_information()
         if not dryrun:
             self.s3.Bucket(bucket['bucket']).upload_file(
                 source, os.path.join(bucket['prefix'], *destination.split("/")))
+
+    def _download_file(self, bucket, source_key, destination):
+        self.s3_client.download_file(bucket, source_key, destination)
 
     def download_file(self, source, destination, status_callback=None, dryrun=False):
         bucket = self.get_s3_information()
@@ -267,7 +300,25 @@ class EpicClient(object):
                 except ClientError as e:
                     raise e
 
+    def list_epic_path(self, path):
+        s3_info = self.get_s3_information()
+        key_list = []
+        s3_prefix = s3_info['prefix'] + path
+        for obj in self.s3.Bucket(s3_info['bucket']).objects.filter(Prefix=s3_info['prefix'] + path):
+            key_list.append({'key': obj.key, 'last_modified': obj.last_modified, 'size': obj.size})
+        return key_list
+
+    def _copy_file(self, bucket, source_key, destination_key):
+        """ Copy an object source_key to destination_key."""
+        try:
+            self.s3.Bucket(bucket).copy({'Bucket': bucket,
+                                         'Key': source_key},
+                                        destination_key)
+        except ClientError as e:
+            raise e
+
     def copy_file(self, source, destination, dryrun=False):
+        """ Copy an object from one S3 location to another."""
         bucket = self.get_s3_information()
         if not dryrun:
             try:
@@ -281,14 +332,88 @@ class EpicClient(object):
         self.copy_file(source, destination, dryrun)
         self.delete_file(source, dryrun)
 
+    def _s3_copy(self, source, destination, dryrun=False):
+        # S3 to S3 sync
+        source_prefix = source[6:]
+        destination_prefix = destination[6:]
+        for file in self.list_epic_path(source_prefix):
+            source_key = file['key']
+            dest_key = s3_info['prefix'] + destination_prefix + file['key'].split('/',1)[1]
+            existing_file = self.get_key_info(dest_key)
+            if existing_file:
+                if existing_file['LastModified'] >= file['last_modified']:
+                    print("Skipping epic://{} as destination already exists".format(source_key))
+                    continue
+            if dryrun:
+                print("Copy from epic://{} to epic://{} (dryrun)".format(source_key, dest_key))
+            else:
+                print("Copy from epic://{} to epic://{}".format(source_key, dest_key))
+                self._copy_file(s3_info['bucket'], source_key, dest_key)              
+
+    def sync_folders(self, source, destination, dryrun=False):
+        s3_info = self.get_s3_information()
+        if source.startswith("epic://"):
+            if destination.startswith("epic://"):
+                self._s3_copy(source, destination, dryrun=dryrun)
+            else:
+                # EPIC to local sync
+                source_prefix = source[6:]
+                if os.path.isfile(destination):
+                    raise CommandError("Destination cannot be a file")
+                for file in self.list_epic_path(source_prefix):
+                    source_key = file['key']
+                    destination_file = os.path.join(destination, file['key'].split('/',1)[1])
+                    if os.path.isfile(destination_file):
+                        mod_time = datetime.datetime.fromtimestamp(os.path.getmtime(destination_file), pytz.utc)
+                        if mod_time >= file['last_modified']:
+                            print("Skipping epic://{} as destination already exists".format(source_key))
+                            continue
+                    if dryrun:
+                        print("Copying from epic://{} to {} (dryrun)".format(source_key, destination_file))
+                    else:
+                        print("Copying from epic://{} to {}".format(source_key, destination_file))
+                        if not os.path.exists(os.path.dirname(destination_file)):
+                            os.makedirs(os.path.dirname(destination_file))
+                        self._download_file(s3_info['bucket'], source_key, str(destination_file))
+        elif destination.startswith("epic://"):
+            # Local to EPIC
+            if os.path.isfile(source):
+                raise CommandError("Source cannot be a file")
+            local_files = []
+            destination_prefix = destination[6:]
+            for root, directory_path, files_path in os.walk(source):
+                for file_path in files_path:
+                    local_files.append(os.path.join(root, file_path))
+            for file in local_files:
+                if file.startswith('./'):
+                    dest_key = s3_info['prefix'] + destination_prefix + file[2:]
+                else:
+                    dest_key = s3_info['prefix'] + destination_prefix + file
+                existing_file = self.get_key_info(dest_key)
+                if existing_file:
+                    mod_time = datetime.datetime.fromtimestamp(os.path.getmtime(file), pytz.utc)
+                    if existing_file['LastModified'] >= mod_time:
+                        print("Skipping {} as destination already exists".format(file))
+                        continue
+                if dryrun:
+                    print("Copying from {} to epic://{} (dryrun)".format(file, dest_key))
+                else:
+                    print("Copying from {} to epic://{}".format(file, dest_key))
+                    self._upload_file(s3_info['bucket'], file, dest_key)
+        else:
+            raise CommandError("Either SOURCE and/or DESTINATION must be an EPIC Path")
+
     def list_job_status(self):
         return self._get_request(urls.BATCH_JOB_LIST)
 
-    def get_job_status(self, job_id):
-        return self._get_request(urls.BATCH_JOB_STATUS + str(job_id))
+    def get_job_details(self, job_id):
+        return self._get_request(urls.job_details(job_id))
 
     def list_queue_status(self):
         return self._get_request(urls.BATCH_QUEUES)
+
+    def get_queue_details(self, queue_id):
+        return self._get_request(urls.queue_details(queue_id))
 
     def get_job_costs(self, job_definition={}):
         return self._post_request(urls.BATCH_JOB_COST, job_definition)
@@ -298,7 +423,7 @@ class EpicClient(object):
 
     def cancel_job(self, job_id):
         self._post_request(urls.BATCH_JOB_CANCEL, {'pk': job_id})
-        return self.list_job_status()
+        return self.get_job_details(job_id)
 
     def list_clusters(self, app_id, app_version_id):
         response = self._get_request(urls.CLUST_LIST + str(app_id) + '/' + str(app_version_id) + '/resources/')

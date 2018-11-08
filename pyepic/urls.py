@@ -8,7 +8,6 @@ BATCH_QUEUES = _URL_ROOT + 'batch/queues/'
 BATCH_APPLICATIONS = _URL_ROOT + 'batch/app/list'
 BATCH_JOB_CREATE = _URL_ROOT + 'batch/job/create/'
 BATCH_JOB_COST = _URL_ROOT + 'batch/job/quote/'
-BATCH_JOB_STATUS = _URL_ROOT + 'batch/job/status/'
 BATCH_JOB_LIST = _URL_ROOT + 'batch/job/list/'
 ACCOUNT_CREDENTIALS = _URL_ROOT + 'accounts/aws/get/'
 NOTIFICATIONS = _URL_ROOT + 'accounts/notifications/'
@@ -23,3 +22,11 @@ BATCH_JOB_DELETE = _URL_ROOT + 'batch/job/delete/'
 
 def application_version(app_id):
     return _URL_ROOT + 'batch/app/' + str(app_id) + '/versions/'
+
+
+def queue_details(queue_id):
+    return _URL_ROOT + 'batch/queues/' + str(queue_id) + '/'
+
+
+def job_details(job_id):
+    return _URL_ROOT + 'batch/job/' + str(job_id) + '/'
