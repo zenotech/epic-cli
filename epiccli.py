@@ -142,19 +142,30 @@ def remove(ctx, filepath, dryrun):
 @click.pass_context
 @click.argument("source",)
 @click.argument("destination")
-@click.option('--dryrun', is_flag=True)
-def download(ctx, source, destination, dryrun):
-    """Download a  file from EPIC"""
+@click.option('--dryrun', help='Show what actions will take place but do not execute them', is_flag=True)
+@click.option('-f', help='Overwrite file if it exists locally', is_flag=True)
+def download(ctx, source, destination, dryrun, f):
+    """Download a file from EPIC SOURCE to local DESTINATION
+       SOURCE should be prefixed with "epic://"\n
+       Example, download EPIC file from /my_sim_data/my.file to directory ./work/\n
+       "epiccli sync download  epic://my_sim_data/my.file ./work/"\n
+       To download whole folders use 'sync'.
+    """
     try:
-        if source.endswith("/"):
-            click.echo("Downloading %s to %s" % (source, destination))
-            ctx.obj.download_directory(
-                source, destination, status_callback=echo_callback, dryrun=dryrun)
-            click.echo("Download complete")
-        else:
-            click.echo("Downloading %s to %s" % (source, destination))
+        if os.path.exists(destination):
+            if os.path.isfile(destination):
+                if not f:
+                    click.echo("Destination file exists. Use -f to overwrite")
+                    return
+            elif os.path.isfile(destination + source.split('/')[-1]):
+                if not f:
+                    click.echo("Destination file exists. Use -f to overwrite")
+                    return
+        if not source.endswith("/"):
             ctx.obj.download_file(source, destination, dryrun=dryrun)
             click.echo("Download complete")
+        else:
+            click.echo("Please use 'sync' to download folders")
     except Exception as e:
         click.echo("Download failed, %s" % e)
 
@@ -167,20 +178,23 @@ def echo_callback(msg):
 @click.pass_context
 @click.argument("source",)
 @click.argument("destination")
-@click.option('--dryrun', is_flag=True)
+@click.option('--dryrun', help='Show what actions will take place but do not execute them', is_flag=True)
 def upload(ctx, source, destination, dryrun):
-    """Upload a file to EPIC"""
+    """Upload a file from local SOURCE to DESTINATION Folder
+       Destinations should be prefixed with "epic://"\n
+       Example, copy ~/my.file to EPIC folder /my_sim_data/\n
+       "epiccli sync upload ~/my.file epic://my_sim_data/"\n
+       To upload a whole folder use 'sync'.
+       """
     try:
-        if os.path.isfile(source):
-            source = click.format_filename(source)
-            click.echo("Uploading %s to %s" % (source, destination))
-            ctx.obj.upload_file(source, destination, dryrun=dryrun)
-            click.echo("Upload complete")
+        if os.path.exists(source):
+            if os.path.isfile(source):
+                source = click.format_filename(source)
+                ctx.obj.upload_file(source, destination, dryrun=dryrun)
+            else:
+                click.echo("Please use 'sync' to upload folders")
         else:
-            click.echo("Uploading directory %s to %s" % (source, destination))
-            ctx.obj.upload_directory(
-                source, destination, status_callback=echo_callback, dryrun=dryrun)
-            click.echo("Upload directory complete")
+            click.echo("File {} not found.".format(source))
     except Exception as e:
         print("Upload failed, %s" % e)
 
@@ -213,7 +227,7 @@ def sync(ctx, source, destination, dryrun):
 @main.group()
 @click.pass_context
 def job(ctx):
-    """Submit or manage your EPIC jobs"""
+    """Manage your EPIC jobs"""
     pass
 
 

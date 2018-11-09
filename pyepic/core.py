@@ -27,6 +27,33 @@ class EpicDataLocation(object):
     pass
 
 
+class EPICPath(object):
+
+    def __init__(self, bucket, prefix, path, filename=None):
+        self.protocol = "epic://"
+        self.bucket = bucket
+        self.prefix = prefix
+        if path.startswith(self.protocol):
+            self.path = path[len(self.protocol):]
+        else:
+            self.path = path
+        if self.path.endswith("/"):
+            self.path = self.path[:-1]
+        self.filename = filename
+
+    def get_s3_key(self):
+        if self.filename:
+            return self.prefix + '/' + self.path + '/' + self.filename
+        else:
+            return self.prefix + '/' + self.path
+
+    def get_user_string(self):
+        if self.filename:
+            return self.protocol + self.path + '/' + self.filename
+        else:
+            return self.protocol + self.path
+
+
 class EpicClient(object):
     """Client for the EPIC API"""
 
@@ -232,22 +259,35 @@ class EpicClient(object):
         self.s3_client.upload_file(source_file, bucket, destination_key)
 
     def upload_file(self, source, destination, dryrun=False):
-        bucket = self.get_s3_information()
-        if not dryrun:
-            self.s3.Bucket(bucket['bucket']).upload_file(
-                source, os.path.join(bucket['prefix'], *destination.split("/")))
+        s3_info = self.get_s3_information()
+        if not destination.startswith("epic://"):
+            raise CommandError("DESTINATION must be an EPIC Path")
+        else:
+            destination = EPICPath(s3_info['bucket'], s3_info['prefix'], destination, filename=os.path.basename(source))
+            if dryrun:
+                print("Uploading {} to {} (dryrun)".format(source, destination.get_user_string()))
+            else:
+                print("Uploading {} to {}".format(source, destination.get_user_string()))
+                self.s3.Bucket(s3_info['bucket']).upload_file(
+                    source, destination.get_s3_key())
 
     def _download_file(self, bucket, source_key, destination):
         self.s3_client.download_file(bucket, source_key, destination)
 
     def download_file(self, source, destination, status_callback=None, dryrun=False):
-        bucket = self.get_s3_information()
-        if status_callback is not None:
-            status_callback('Downloading %s to %s %s' % (os.path.join(
-                *source.split("/")), destination, "(dryrun)" if dryrun else ""))
-        if not dryrun:
-            self.s3.Bucket(bucket['bucket']).download_file(
-                os.path.join(bucket['prefix'], *source.split("/")), destination)
+        s3_info = self.get_s3_information()
+        if not source.startswith("epic://"):
+            raise CommandError("SOURCE must be an EPIC Path")
+        source = EPICPath(s3_info['bucket'], s3_info['prefix'], os.path.dirname(source), os.path.basename(source))
+        if dryrun:
+                print("Downloading {} to {} (dryrun)".format(source.get_user_string(), destination))
+        else:
+            print("Downloading {} to {}".format(source.get_user_string(), destination))
+            try:
+                os.makedirs(os.path.dirname(destination))
+            except OSError:
+                pass
+            self.s3.Bucket(s3_info['bucket']).download_file(source.get_s3_key(), destination)
 
     def download_fileobj(self, source, destination_obj, status_callback=None, dryrun=False):
         bucket = self.get_s3_information()
