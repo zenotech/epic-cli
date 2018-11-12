@@ -89,10 +89,16 @@ def billing(ctx):
 def list_projectcodes(ctx):
     """List your available project codes"""
     click.echo("Your available EPIC Projects:")
+    click.echo("ID | Name | Budget | Spend | Open")
+    click.echo("-----------------------------")
     for project in ctx.obj.list_project_codes():
-        pprint.pprint(project)
-
-
+        open_str = "No" if project['closed'] else "Yes"
+        budget = project['spend_limit'] if project['has_budget'] else "--"
+        click.echo("{} | {} | {} | {} | {}".format(project['pk'],
+                                                   project['project_id'],
+                                                   budget,
+                                                   project['current_spend'],
+                                                   open_str))
 
 @main.group()
 @click.pass_context
@@ -131,11 +137,14 @@ def list(ctx, filepath):
 @click.argument("filepath")
 @click.option('--dryrun', help='Show what actions will take place but do not execute them', is_flag=True)
 @click.option('--R', help='Recusive delete', is_flag=True)
-def remove(ctx, filepath, dryrun):
+def remove(ctx, filepath, dryrun, r):
     """Delete a file from EPIC"""
-    pprint.pprint("Deleting file %s" % filepath)
-    ctx.obj.delete_file(filepath, dryrun)
-    pprint.pprint("Removed")
+    if filepath.endswith("/"):
+        click.echo("Deleting folder %s" % filepath)
+        ctx.obj.delete_folder(filepath, dryrun)
+    else:
+        click.echo("Deleting file %s" % filepath)
+        ctx.obj.delete_file(filepath, dryrun)
 
 
 @data.command()

@@ -238,6 +238,8 @@ class EpicClient(object):
 
     def list_data_locations(self, filepath):
         if filepath is not None:
+            if filepath.startswith('epic://'):
+                filepath = filepath[7:]
             params = {'dir': filepath}
         else:
             params = None
@@ -250,10 +252,29 @@ class EpicClient(object):
         except botocore.exceptions.ClientError as e:
             return None
 
-    def delete_file(self, source, dryrun):
-        bucket = self.get_s3_information()
-        if not dryrun:
-            self.s3.Bucket(bucket['bucket']).delete_objects(Delete={'Objects': [{'Key': os.path.join(bucket['prefix'], *source.split("/"))}]})
+    def delete_file(self, file, dryrun):
+        s3_info = self.get_s3_information()
+        if not file.startswith("epic://"):
+            raise CommandError("PATH must be an EPIC Path")
+        file = EPICPath(s3_info['bucket'], s3_info['prefix'], file.split("/",1)[1])
+        if dryrun:
+                print("Deleting {} (dryrun)".format(file.get_user_string()))
+        else:
+            print("Deleting {}".format(file.get_user_string()))
+            self.s3_client.delete_object(Bucket=s3_info['bucket'], Key=file.get_s3_key())
+
+    def delete_folder(self, folder, dryrun):
+        s3_info = self.get_s3_information()
+        if not source.startswith("epic://"):
+            raise CommandError("PATH must be an EPIC Path")
+        source_prefix = source[6:]
+        for file in self.list_epic_path(source_prefix):
+            epath = EPICPath(s3_info['bucket'], s3_info['prefix'], file['key'].split("/",1)[1])
+            if dryrun:
+                print("Deleting {} (dryrun)".format(epath.get_user_string()))
+            else:
+                print("Deleting {}".format(epath.get_user_string()))
+                self.s3_client.delete_object(Bucket=s3_info['bucket'], Key=epath.get_s3_key())
 
     def _upload_file(self, bucket, source_file, destination_key):
         self.s3_client.upload_file(source_file, bucket, destination_key)
