@@ -3,9 +3,13 @@ import pyfiglet
 import os
 import errno
 import pprint
+import json
 import ConfigParser
 from pyepic.core import EpicClient
 from pyepic.exceptions import ConfigurationException
+from dateutil.parser import parse
+from hurry.filesize import size
+from hurry.filesize import alternative
 
 
 @click.group()
@@ -26,7 +30,7 @@ def main(ctx, team, config):
         click.echo("Loading config from %s" % config_file)
         ec = EpicClient(config_file=config_file)
         ctx.obj = ec
-    except ConfigurationException as e:
+    except ConfigurationException:
         click.echo(
             "Configuration file not found or invalid, please run configure.")
 
@@ -86,22 +90,16 @@ def billing(ctx):
 def list_projectcodes(ctx):
     """List your available project codes"""
     click.echo("Your available EPIC Projects:")
+    click.echo("ID | Name | Budget | Spend | Open")
+    click.echo("-----------------------------")
     for project in ctx.obj.list_project_codes():
-        pprint.pprint(project)
-
-
-@billing.command("list_teams")
-@click.pass_context
-def list_teams(ctx):
-    """List your available project teams"""
-    click.echo("Your available EPIC Teams (* current team)")
-    click.echo("ID | Name")
-    click.echo("-----------------")
-    for team in ctx.obj.list_teams():
-        if (team['team_id'] == ctx.obj.EPIC_TEAM):
-            click.echo(str(team['team_id']) + "* | " + team['name'])
-        else:
-            click.echo(str(team['team_id']) + " | " + team['name'])
+        open_str = "No" if project['closed'] else "Yes"
+        budget = project['spend_limit'] if project['has_budget'] else "--"
+        click.echo("{} | {} | {} | {} | {}".format(project['pk'],
+                                                   project['project_id'],
+                                                   budget,
+                                                   project['current_spend'],
+                                                   open_str))
 
 
 @main.group()
@@ -111,41 +109,74 @@ def data(ctx):
     pass
 
 
-@data.command()
+@data.command("ls")
 @click.pass_context
 @click.argument("filepath", required=False, type=str)
 def list(ctx, filepath):
-    """List all data locations belonging to the user on EPIC"""
+    """List data in your EPIC data store or in FILEPATH"""
     click.echo("EPIC data list")
-    click.echo("-----------------")
+    click.echo("Last Modified | Size | Path ")
+    click.echo("-----------------------------")
+
     if filepath:
         filepath = filepath.strip('/')
-    response = ctx.obj.list_data_locations(filepath)
-    for folder in response['folders']:
-        path = folder['obj_key'].split('/', 1)[1]
-        click.echo('/' + path)
-    for file in response['files']:
-        path = file['obj_key'].split('/', 1)[1]
-        click.echo('/' + path)
+    try:
+        response = ctx.obj.list_data_locations(filepath)
+        for folder in response['folders']:
+            path = folder['obj_key'].split('/', 1)[1]
+            last_modified = parse(folder['last_modified'])
+            click.echo('{} | {} | {}'.format(last_modified.strftime("%m:%H %d-%m-%Y"), "--", '/' + path))
+        for file in response['files']:
+            path = file['obj_key'].split('/', 1)[1]
+            last_modified = parse(file['last_modified'])
+            click.echo('{} | {} | {}'.format(last_modified.strftime("%m:%H %d-%m-%Y"), size(file['size'], system=alternative), '/' + path))
+    except Exception as e:
+        click.echo("Error: {}".format(str(e)))
+
+
+@data.command("rm")
+@click.pass_context
+@click.argument("filepath")
+@click.option('--dryrun', help='Show what actions will take place but do not execute them', is_flag=True)
+@click.option('--R', help='Recusive delete', is_flag=True)
+def remove(ctx, filepath, dryrun, r):
+    """Delete a file from EPIC"""
+    if filepath.endswith("/"):
+        click.echo("Deleting folder %s" % filepath)
+        ctx.obj.delete_folder(filepath, dryrun)
+    else:
+        click.echo("Deleting file %s" % filepath)
+        ctx.obj.delete_file(filepath, dryrun)
 
 
 @data.command()
 @click.pass_context
 @click.argument("source",)
 @click.argument("destination")
-@click.option('--dryrun', is_flag=True)
-def download(ctx, source, destination, dryrun):
-    """Download a file from EPIC"""
+@click.option('--dryrun', help='Show what actions will take place but do not execute them', is_flag=True)
+@click.option('-f', help='Overwrite file if it exists locally', is_flag=True)
+def download(ctx, source, destination, dryrun, f):
+    """Download a file from EPIC SOURCE to local DESTINATION
+       SOURCE should be prefixed with "epic://"\n
+       Example, download EPIC file from /my_sim_data/my.file to directory ./work/\n
+       "epiccli sync download  epic://my_sim_data/my.file ./work/"\n
+       To download whole folders use 'sync'.
+    """
     try:
-        if source.endswith("/"):
-            click.echo("Downloading %s to %s" % (source, destination))
-            ctx.obj.download_directory(
-                source, destination, status_callback=echo_callback, dryrun=dryrun)
-            click.echo("Download complete")
-        else:
-            click.echo("Downloading %s to %s" % (source, destination))
+        if os.path.exists(destination):
+            if os.path.isfile(destination):
+                if not f:
+                    click.echo("Destination file exists. Use -f to overwrite")
+                    return
+            elif os.path.isfile(destination + source.split('/')[-1]):
+                if not f:
+                    click.echo("Destination file exists. Use -f to overwrite")
+                    return
+        if not source.endswith("/"):
             ctx.obj.download_file(source, destination, dryrun=dryrun)
             click.echo("Download complete")
+        else:
+            click.echo("Please use 'sync' to download folders")
     except Exception as e:
         click.echo("Download failed, %s" % e)
 
@@ -158,93 +189,199 @@ def echo_callback(msg):
 @click.pass_context
 @click.argument("source",)
 @click.argument("destination")
-@click.option('--dryrun', is_flag=True)
+@click.option('--dryrun', help='Show what actions will take place but do not execute them', is_flag=True)
 def upload(ctx, source, destination, dryrun):
-    """Upload a file to EPIC"""
+    """Upload a file from local SOURCE to DESTINATION Folder
+       Destinations should be prefixed with "epic://"\n
+       Example, copy ~/my.file to EPIC folder /my_sim_data/\n
+       "epiccli sync upload ~/my.file epic://my_sim_data/"\n
+       To upload a whole folder use 'sync'.
+       """
     try:
-        if os.path.isfile(source):
-            source = click.format_filename(source)
-            click.echo("Uploading %s to %s" % (source, destination))
-            ctx.obj.upload_file(source, destination, dryrun=dryrun)
-            click.echo("Upload complete")
+        if os.path.exists(source):
+            if os.path.isfile(source):
+                source = click.format_filename(source)
+                ctx.obj.upload_file(source, destination, dryrun=dryrun)
+            else:
+                click.echo("Please use 'sync' to upload folders")
         else:
-            click.echo("Uploading directory %s to %s" % (source, destination))
-            ctx.obj.upload_directory(
-                source, destination, status_callback=echo_callback, dryrun=dryrun)
-            click.echo("Upload directory complete")
+            click.echo("File {} not found.".format(source))
     except Exception as e:
         print("Upload failed, %s" % e)
+
+
+@data.command()
+@click.pass_context
+@click.argument("source")
+@click.argument("destination")
+@click.option('--dryrun', help='Show what actions will take place but do not execute them', is_flag=True)
+def sync(ctx, source, destination, dryrun):
+    """Synchronise contents of SOURCE to DESTINATION.
+       EPIC destinations should be prefixed with "epic://".
+       Copies files from SOURCE that do not exist in DESTINATION.\n
+       Example, copy from EPIC folder to local folder:\n
+       "epiccli sync epic://my_sim_data/ ./local_folder/"  """
+    try:
+        if not source.endswith('/'):
+            click.echo("Source does not end in a '/', please specify a folder for the source")
+            return
+        if not destination.endswith('/'):
+            click.echo("Destination does not end in a '/', please specify a folder for the destination")
+            return
+        click.echo('Synchronising from {} to {}'.format(source, destination))
+        ctx.obj.sync_folders(source, destination, dryrun)
+        click.echo('Sync complete')
+    except Exception as e:
+        print("Sync failed, %s" % e)
 
 
 @main.group()
 @click.pass_context
 def job(ctx):
-    """Submit or manage your EPIC jobs"""
+    """Manage your EPIC jobs"""
     pass
 
 
-@job.command()
-@click.pass_context
-def list_queues(ctx):
-    """List current status of available queues"""
-    pprint.pprint(ctx.obj.list_queue_status())
+def get_app_id(ctx):
+    apps = ctx.obj.list_applications()
+    for i in range(0, len(apps)):
+        print(str(i) + ": " + apps[i]['product']['name'])
+    app_name = apps[click.prompt("Select an application number: ", type=int)]['product']['name']
+    for app in apps:
+        if app[u'product'][u'name'] == app_name:
+            versions = ctx.obj.list_application_versions(app[u'id'])
+            print("Please select an application version: ")
+            for i in range(0, len(versions)):
+                print(str(i) + ": " + versions[i][u'version'])
+            version = click.prompt("Number: ", type=int)
+            return versions[version][u'id']
+    raise NameError
 
 
 @job.command()
 @click.pass_context
-def submit(ctx):
-    """Submit a new job to EPIC"""
-    name = str(raw_input("Job Name: "))
-    app_id = int(raw_input("App Version ID: "))
-    queue_id = int(raw_input("Queue ID: "))
-    working_dir = str(raw_input("Base Directory: "))
-    job_definition = {
-        "name": name,
-        "app_id": app_id,
-        "queue_id": queue_id,
-        "working_dir_key": working_dir
-    }
-    response = ctx.obj.create_job(job_definition)
-    click.echo('Submitted, JobID: ' + str(response))
+def list(ctx):
+    """List active jobs"""
+    click.echo("Your EPIC HPC Jobs")
+    click.echo("Job ID | Name | Application | Submitted by | Submitted | Status ")
+    click.echo("-----------------------------------------")
+    jlist = sorted(ctx.obj.list_job_status(), key=lambda k: k['id'])
+    for job in jlist:
+        created = parse(job['created'])
+        click.echo("{} | {} | {} | {} | {} | {}".format(job['id'],
+                                                        job['name'],
+                                                        job['application'],
+                                                        job['user'],
+                                                        created.strftime("%m:%H %d-%m-%Y"),
+                                                        job['latest_status']['status_display']))
 
 
 @job.command()
 @click.pass_context
-@click.option('--job', default=None)
-def status(ctx, job):
-    """Get job status"""
-    if job:
-        pprint.pprint(ctx.obj.get_job_status(job))
+@click.argument('job_id')
+def cancel(ctx, job_id):
+    """Cancel a job"""
+    pprint.pprint("Cancelling job ID {}".format(job_id))
+    pprint.pprint(ctx.obj.cancel_job(job_id))
+
+
+@job.command()
+@click.pass_context
+@click.argument('ID')
+def details(ctx, id):
+    """Get details of job ID"""
+    pprint.pprint(ctx.obj.get_job_details(id))
+
+
+@main.group()
+@click.pass_context
+def teams(ctx):
+    """Team Management"""
+    pass
+
+
+@teams.command()
+@click.pass_context
+def list(ctx):
+    """List your available EPIC teams"""
+    click.echo("Your available EPIC Teams (* current team)")
+    click.echo("ID | Name")
+    click.echo("-----------------")
+    for team in ctx.obj.list_teams():
+        if team['team_id'] == ctx.obj.EPIC_TEAM:
+            click.echo(str(team['team_id']) + "* | " + team['name'])
+        else:
+            click.echo(str(team['team_id']) + " | " + team['name'])
+
+
+@teams.command()
+@click.pass_context
+@click.option('--id', help="Switch to team with id", required=False, type=int)
+def switch(ctx, id):
+    """Switch your active EPIC team """
+    if id:
+        new_team_id = id
+        teams_list = ctx.obj.list_teams()
     else:
-        pprint.pprint(ctx.obj.list_job_status())
+        click.echo("Your available EPIC Teams (* current team)")
+        click.echo("ID | Name")
+        click.echo("-----------------")
+        teams_list = ctx.obj.list_teams()
+        for team in teams_list:
+            if team['team_id'] == ctx.obj.EPIC_TEAM:
+                click.echo(str(team['team_id']) + "* | " + team['name'])
+            else:
+                click.echo(str(team['team_id']) + " | " + team['name'])
+        new_team_id = click.prompt("Enter the ID of the team you would like to switch to", type=int, default=ctx.obj.EPIC_TEAM)
+    if not any(team['team_id'] == int(new_team_id) for team in teams_list):
+        click.echo("Sorry, team with ID %s does not exist" % new_team_id)
+    else:
+        ctx.obj.EPIC_TEAM = int(new_team_id)
+        ctx.obj.write_config_file()
+        click.echo("Team ID set to %s" % new_team_id)
 
 
-@job.command()
+@main.group()
 @click.pass_context
-def list_apps(ctx):
-    """List apps available on EPIC and their IDs"""
-    pprint.pprint(ctx.obj.list_applications())
+def queues(ctx):
+    """Queue Management"""
+    pass
 
 
-@job.command()
+@queues.command()
 @click.pass_context
-@click.option("--app_id", default=1, prompt=True)
-def version(ctx, app_id):
-    """List apps available on EPIC and their IDs"""
-    pprint.pprint(ctx.obj.list_application_versions(app_id))
+def list(ctx):
+    """List your available EPIC queues"""
+    click.echo("Your available EPIC HPC queues")
+    click.echo("ID | Cluster Name | Queue Name | CPU Type | GPU Type | Total CPU Cores ")
+    click.echo("-----------------------------------------")
+    qlist = sorted(ctx.obj.list_queue_status(), key=lambda k: k['id'])
+    for queue in qlist:
+        if 'accelerator' in queue:
+            click.echo("{} | {} | {} | {} | {} | {}".format(queue['id'],
+                                                            queue['cluster_name'],
+                                                            queue['name'],
+                                                            queue['cpu_generation'],
+                                                            queue['accelerator'],
+                                                            queue['max_cores']))
+        else:
+            click.echo("{} | {} | {} | {} | {} | {}".format(queue['id'],
+                                                            queue['cluster_name'],
+                                                            queue['name'],
+                                                            queue['cpu_generation'],
+                                                            "--",
+                                                            queue['max_cores']))
 
 
-@job.command()
+@queues.command()
 @click.pass_context
-@click.option("--appid", prompt=True)
-@click.option("--tasklist", prompt=True)
-def costs(ctx, appid, tasklist):
-    """List apps available on EPIC and their IDs"""
-    job_definition = {
-        "application_id": appid,
-        "tasks": tasklist
-    }
-    pprint.pprint(ctx.obj.get_job_costs(job_definition))
+@click.argument('ID')
+def details(ctx, id):
+    """Print the details of queue ID"""
+    click.echo("HPC Cluster {} details".format(id))
+    click.echo("-----------------------------------------")
+    queue_details = ctx.obj.get_queue_details(id)
+    pprint.pprint(queue_details)
 
 
 if __name__ == '__main__':
