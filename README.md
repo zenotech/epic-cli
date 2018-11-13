@@ -38,4 +38,4 @@ The CLI is built using [Click](http://click.pocoo.org/6/) to handle boilerplate 
 
 The `pyepic` module manages interactions with the EPIC REST API. It uses the [Requests](http://docs.python-requests.org/en/master/) and [boto3](https://boto3.readthedocs.io/en/latest/) modules to make expose methods to the user abstracting the more complicated HTTP requests that occur under the hood.
 
-For further documentation, a full API schema is available at https://epic.zenotech.com/api/v1/schema 
+For further documentation, a full API schema is available at https://epic.zenotech.com/api/v1/schema
