@@ -1,5 +1,5 @@
 pyfiglet==0.7.6
-requests==2.20.0
+requests==2.20.1
 Click==7.0
 boto3==1.9.33
 python-dateutil
