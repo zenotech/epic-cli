@@ -3,6 +3,6 @@ requests==2.20.1
 Click==7.0
 boto3==1.9.33
 python-dateutil
-hurry.filesize
+hurry.filesize==0.9
 pytz
 
