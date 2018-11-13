@@ -129,7 +129,7 @@ def list(ctx, filepath):
         for file in response['files']:
             path = file['obj_key'].split('/', 1)[1]
             last_modified = parse(file['last_modified'])
-            click.echo('{} | {} | {}'.format(last_modified.strftime("%m:%H %d-%m-%Y"), size(file['size'], system=alternative),  '/' + path))
+            click.echo('{} | {} | {}'.format(last_modified.strftime("%m:%H %d-%m-%Y"), size(file['size'], system=alternative), '/' + path))
     except Exception as e:
         click.echo("Error: {}".format(str(e)))
 

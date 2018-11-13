@@ -399,7 +399,7 @@ class EpicClient(object):
         destination_prefix = destination[6:]
         for file in self.list_epic_path(source_prefix):
             source_key = file['key']
-            dest_key = s3_info['prefix'] + destination_prefix + file['key'].split('/',1)[1]
+            dest_key = s3_info['prefix'] + destination_prefix + file['key'].split('/', 1)[1]
             existing_file = self.get_key_info(dest_key)
             if existing_file:
                 if existing_file['LastModified'] >= file['last_modified']:
