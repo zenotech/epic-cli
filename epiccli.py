@@ -11,6 +11,7 @@ from dateutil.parser import parse
 from hurry.filesize import size
 from hurry.filesize import alternative
 
+
 @click.group()
 @click.pass_context
 @click.option('--team', type=int, help='ID of team to act as (optional)')
@@ -99,6 +100,7 @@ def list_projectcodes(ctx):
                                                    budget,
                                                    project['current_spend'],
                                                    open_str))
+
 
 @main.group()
 @click.pass_context
@@ -214,8 +216,8 @@ def upload(ctx, source, destination, dryrun):
 @click.argument("destination")
 @click.option('--dryrun', help='Show what actions will take place but do not execute them', is_flag=True)
 def sync(ctx, source, destination, dryrun):
-    """Synchronise contents of SOURCE to DESTINATION. 
-       EPIC destinations should be prefixed with "epic://". 
+    """Synchronise contents of SOURCE to DESTINATION.
+       EPIC destinations should be prefixed with "epic://".
        Copies files from SOURCE that do not exist in DESTINATION.\n
        Example, copy from EPIC folder to local folder:\n
        "epiccli sync epic://my_sim_data/ ./local_folder/"  """
@@ -263,15 +265,16 @@ def list(ctx):
     click.echo("Your EPIC HPC Jobs")
     click.echo("Job ID | Name | Application | Submitted by | Submitted | Status ")
     click.echo("-----------------------------------------")
-    jlist = sorted(ctx.obj.list_job_status(), key=lambda k: k['id']) 
+    jlist = sorted(ctx.obj.list_job_status(), key=lambda k: k['id'])
     for job in jlist:
         created = parse(job['created'])
         click.echo("{} | {} | {} | {} | {} | {}".format(job['id'],
-                                                   job['name'],
-                                                   job['application'],
-                                                   job['user'],
-                                                   created.strftime("%m:%H %d-%m-%Y"),
-                                                   job['latest_status']['status_display']))
+                                                        job['name'],
+                                                        job['application'],
+                                                        job['user'],
+                                                        created.strftime("%m:%H %d-%m-%Y"),
+                                                        job['latest_status']['status_display']))
+
 
 @job.command()
 @click.pass_context
@@ -295,6 +298,7 @@ def details(ctx, id):
 def teams(ctx):
     """Team Management"""
     pass
+
 
 @teams.command()
 @click.pass_context
@@ -351,7 +355,7 @@ def list(ctx):
     click.echo("Your available EPIC HPC queues")
     click.echo("ID | Cluster Name | Queue Name | CPU Type | GPU Type | Total CPU Cores ")
     click.echo("-----------------------------------------")
-    qlist = sorted(ctx.obj.list_queue_status(), key=lambda k: k['id']) 
+    qlist = sorted(ctx.obj.list_queue_status(), key=lambda k: k['id'])
     for queue in qlist:
         if 'accelerator' in queue:
             click.echo("{} | {} | {} | {} | {} | {}".format(queue['id'],
@@ -367,6 +371,7 @@ def list(ctx):
                                                             queue['cpu_generation'],
                                                             "--",
                                                             queue['max_cores']))
+
 
 @queues.command()
 @click.pass_context

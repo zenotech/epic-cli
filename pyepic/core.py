@@ -103,11 +103,11 @@ class EpicClient(object):
     def _create_boto_client(self):
         creds = self.get_or_create_aws_tokens()
         self._s3_resource = boto3.resource('s3',
+                                           aws_access_key_id=creds['aws_key_id'],
+                                           aws_secret_access_key=creds['aws_secret_key'])
+        self._s3_client = boto3.client('s3',
                                        aws_access_key_id=creds['aws_key_id'],
                                        aws_secret_access_key=creds['aws_secret_key'])
-        self._s3_client = boto3.client('s3',
-                                   aws_access_key_id=creds['aws_key_id'],
-                                   aws_secret_access_key=creds['aws_secret_key'])       
         self._s3_info = self.get_s3_information()
 
     def get_s3_information(self):
@@ -256,7 +256,7 @@ class EpicClient(object):
         s3_info = self.get_s3_information()
         if not file.startswith("epic://"):
             raise CommandError("PATH must be an EPIC Path")
-        file = EPICPath(s3_info['bucket'], s3_info['prefix'], file.split("/",1)[1])
+        file = EPICPath(s3_info['bucket'], s3_info['prefix'], file.split("/", 1)[1])
         if dryrun:
                 print("Deleting {} (dryrun)".format(file.get_user_string()))
         else:
@@ -269,7 +269,7 @@ class EpicClient(object):
             raise CommandError("PATH must be an EPIC Path")
         source_prefix = source[6:]
         for file in self.list_epic_path(source_prefix):
-            epath = EPICPath(s3_info['bucket'], s3_info['prefix'], file['key'].split("/",1)[1])
+            epath = EPICPath(s3_info['bucket'], s3_info['prefix'], file['key'].split("/", 1)[1])
             if dryrun:
                 print("Deleting {} (dryrun)".format(epath.get_user_string()))
             else:
@@ -409,7 +409,7 @@ class EpicClient(object):
                 print("Copy from epic://{} to epic://{} (dryrun)".format(source_key, dest_key))
             else:
                 print("Copy from epic://{} to epic://{}".format(source_key, dest_key))
-                self._copy_file(s3_info['bucket'], source_key, dest_key)              
+                self._copy_file(s3_info['bucket'], source_key, dest_key)
 
     def sync_folders(self, source, destination, dryrun=False):
         s3_info = self.get_s3_information()
@@ -423,7 +423,7 @@ class EpicClient(object):
                     raise CommandError("Destination cannot be a file")
                 for file in self.list_epic_path(source_prefix):
                     source_key = file['key']
-                    destination_file = os.path.join(destination, file['key'].split('/',1)[1])
+                    destination_file = os.path.join(destination, file['key'].split('/', 1)[1])
                     if os.path.isfile(destination_file):
                         mod_time = datetime.datetime.fromtimestamp(os.path.getmtime(destination_file), pytz.utc)
                         if mod_time >= file['last_modified']:
