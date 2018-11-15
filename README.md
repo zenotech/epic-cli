@@ -20,7 +20,6 @@ Run `epicli` to list commands:
       CLI for communicating with the EPIC
 
     Options:
-      --team INTEGER  ID of team to act as (optional)
       --config TEXT   Configuration file to load (default is ~/.epic/config)
       --help          Show this message and exit.
 
