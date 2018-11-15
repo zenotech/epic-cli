@@ -331,7 +331,7 @@ def switch(ctx, id):
             team_id = team['team_id']
             click.echo("{}{} | {}".format(team_id, "*" if team_id == ctx.obj.EPIC_TEAM else "", team['name']))
         new_team_id = click.prompt("Enter the ID of the team you would like to switch to", type=int, default=ctx.obj.EPIC_TEAM)
-    if new_team_id == 0 :
+    if new_team_id == 0:
         ctx.obj.EPIC_TEAM = 0
         ctx.obj.write_config_file()
         click.echo("Team ID set to %s" % new_team_id)
