@@ -4,13 +4,38 @@ Status](https://travis-ci.org/zenotech/epic-cli.svg?branch=master)](https://trav
 
 [EPIC](epic.zenotech.com) is a cloud platform for interfacing with HPC resources. This Python CLI demonstrates the `pyepic` module, which interfaces with the EPIC REST API.
 
-Once this repo has been cloned, install `epiccli` by navigating to the root directory and running `pip install --editable .`
+## Installation
 
-The CLI is built using [Click](http://click.pocoo.org/6/) to handle boilerplate and is packaged over pypi. Once installed, run `epiccli configure` to generate the configuration file for the program. Multiple configuration files can be stored and can be chosen between using the `--config` flag. By default the file at `~/.epic/config` is loaded. 
+### From Github
+Clone this repository and then install `epiccli` by navigating to the root directory and running `pip install --editable .`
 
-The file `Epic_CLI.py` contains a deprecated version of EpicCLI which consists of the functionalities of `pyepic` and `epiccli` combined. It is left for reference reasons.
+## Usage
+To get started run `epicli configure` and enter your EPIC configuration details. This will generate the configuration file for the program. Multiple configuration files can be stored and can be chosen between using the `--config` flag. By default the file at `~/.epic/config` is loaded. 
+
+Run `epicli` to list commands:
+
+    $ epiccli
+    Usage: epiccli [OPTIONS] COMMAND [ARGS]...
+    
+      CLI for communicating with the EPIC
+
+    Options:
+      --team INTEGER  ID of team to act as (optional)
+      --config TEXT   Configuration file to load (default is ~/.epic/config)
+      --help          Show this message and exit.
+
+    Commands:
+      billing    Billing Management
+      configure  Configure the CLI tool
+      data       Data Management
+      job        Manage your EPIC jobs
+      queues     Queue Management
+      teams      Team Management
+
+
+## About
+The CLI is built using [Click](http://click.pocoo.org/6/) to handle boilerplate and is packaged over pypi. 
 
 The `pyepic` module manages interactions with the EPIC REST API. It uses the [Requests](http://docs.python-requests.org/en/master/) and [boto3](https://boto3.readthedocs.io/en/latest/) modules to make expose methods to the user abstracting the more complicated HTTP requests that occur under the hood.
 
-
-For further documentation, a full API schema is available at https://epic.zenotech.com/api/v1/schema 
+For further documentation, a full API schema is available at https://epic.zenotech.com/api/v1/schema
