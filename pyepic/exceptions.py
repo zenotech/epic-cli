@@ -17,3 +17,14 @@ class ResponseError(Exception):
 
     def __str__(self):
         return self.msg
+
+
+class CommandError(Exception):
+    """Exception raised for errors supplied command
+    """
+
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __str__(self):
+        return self.msg

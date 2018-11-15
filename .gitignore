@@ -2,9 +2,11 @@
 \.idea/
 
 Epic_CLI\.egg-info/
-
+epiccli\.egg-info/
 *\.pyc
 *\.pyo
 
 dist/
 .tox/
+
+\.vscode/

@@ -10,7 +10,10 @@ setup(
         'requests',
         'pyfiglet',
         'boto3',
-        'botocore'
+        'botocore',
+        'pytz',
+        'python-dateutil',
+        'hurry.filesize'
     ],
     entry_points='''
         [console_scripts]

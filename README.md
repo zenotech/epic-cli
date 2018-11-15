@@ -1,15 +1,41 @@
-# Epic by Zenotech - Command Line Inteface
+# Epic by Zenotech - Command Line Interface
 [![Build
 Status](https://travis-ci.org/zenotech/epic-cli.svg?branch=master)](https://travis-ci.org/zenotech/epic-cli) [![Updates](https://pyup.io/repos/github/zenotech/epic-cli/shield.svg)](https://pyup.io/repos/github/zenotech/epic-cli/)
 
-[EPIC](epic.zenotech.com) is a cloud platform for interfacing with HPC resources. This Python CLI demonstrates the REST API exposed on the EPIC platform and allows basic usage of the platform through the command line.
+[EPIC](epic.zenotech.com) is a cloud platform for interfacing with HPC resources. This Python CLI demonstrates the `pyepic` module, which interfaces with the EPIC REST API.
 
-The CLI is built using [Click](http://click.pocoo.org/6/) to handle boilerplate and is packaged over pypi. To install for development purposes: clone the repo, create a venv and install the requirements.txt into it. Alternatively for normal usage run `pip install --editable .` with SU privallages to compile and install the entire package. Then run `Epic_CLI --help` for further guidance on how to continue.
+## Installation
 
-By default the CLI points to the EPIC Production site, however for devleopment purposes the `EPIC_API_ENDPOINT` environment variable may be set to instead make it point to a QA or Dev site instead.
+### From Github
+Clone this repository and then install `epiccli` by navigating to the root directory and running `pip install --editable .`
 
-The first step is to authenticate with EPIC. Running `Epic_CLI auth` will prompt for login details and store the recieved authentication token in an EPIC configuration file, by default at `~/.epic/conf`. This allows you to stay authenticated for the rest of your sessions, if you would like to authenticate as a different user, just run auth again.
+## Usage
+To get started run `epicli configure` and enter your EPIC configuration details. This will generate the configuration file for the program. Multiple configuration files can be stored and can be chosen between using the `--config` flag. By default the file at `~/.epic/config` is loaded. 
+
+Run `epicli` to list commands:
+
+    $ epiccli
+    Usage: epiccli [OPTIONS] COMMAND [ARGS]...
+    
+      CLI for communicating with the EPIC
+
+    Options:
+      --team INTEGER  ID of team to act as (optional)
+      --config TEXT   Configuration file to load (default is ~/.epic/config)
+      --help          Show this message and exit.
+
+    Commands:
+      billing    Billing Management
+      configure  Configure the CLI tool
+      data       Data Management
+      job        Manage your EPIC jobs
+      queues     Queue Management
+      teams      Team Management
 
 
+## About
+The CLI is built using [Click](http://click.pocoo.org/6/) to handle boilerplate and is packaged over pypi. 
 
-For further documentation, a full API schema is available at https://epic.zenotech.com/api/v1/schema 
+The `pyepic` module manages interactions with the EPIC REST API. It uses the [Requests](http://docs.python-requests.org/en/master/) and [boto3](https://boto3.readthedocs.io/en/latest/) modules to make expose methods to the user abstracting the more complicated HTTP requests that occur under the hood.
+
+For further documentation, a full API schema is available at https://epic.zenotech.com/api/v1/schema
