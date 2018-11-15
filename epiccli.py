@@ -14,9 +14,8 @@ from hurry.filesize import alternative
 
 @click.group()
 @click.pass_context
-@click.option('--team', type=int, help='ID of team to act as (optional)')
 @click.option('--config', help='Configuration file to load (default is ~/.epic/config)')
-def main(ctx, team, config):
+def main(ctx, config):
     """CLI for communicating with the EPIC"""
     click.echo(pyfiglet.Figlet().renderText("EPIC by Zenotech"))
     config_file = os.path.expanduser('~/.epic/config')
@@ -326,13 +325,17 @@ def switch(ctx, id):
         click.echo("Your available EPIC Teams (* current team)")
         click.echo("ID | Name")
         click.echo("-----------------")
+        click.echo("0{} | Back to your account".format("*" if ctx.obj.EPIC_TEAM == 0 else ""))
         teams_list = ctx.obj.list_teams()
         for team in teams_list:
-            if team['team_id'] == ctx.obj.EPIC_TEAM:
-                click.echo(str(team['team_id']) + "* | " + team['name'])
-            else:
-                click.echo(str(team['team_id']) + " | " + team['name'])
+            team_id = team['team_id']
+            click.echo("{}{} | {}".format(team_id, "*" if team_id == ctx.obj.EPIC_TEAM else "", team['name']))
         new_team_id = click.prompt("Enter the ID of the team you would like to switch to", type=int, default=ctx.obj.EPIC_TEAM)
+    if new_team_id == 0 :
+        ctx.obj.EPIC_TEAM = 0
+        ctx.obj.write_config_file()
+        click.echo("Team ID set to %s" % new_team_id)
+        return
     if not any(team['team_id'] == int(new_team_id) for team in teams_list):
         click.echo("Sorry, team with ID %s does not exist" % new_team_id)
     else:
