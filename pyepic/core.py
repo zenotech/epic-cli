@@ -18,7 +18,6 @@ from .exceptions import (
     ResponseError
 )
 
-
 class EPICPath(object):
 
     def __init__(self, bucket, prefix, path, filename=None):
@@ -29,7 +28,7 @@ class EPICPath(object):
             self.path = path[len(self.protocol):]
         else:
             self.path = path
-        if self.path.endswith("/"):
+        if self.path.endswith(os.sep):
             self.path = self.path[:-1]
         self.filename = filename
 
@@ -45,6 +44,11 @@ class EPICPath(object):
         else:
             return self.protocol + self.path
 
+    def get_local_path(self):
+        if self.filename:
+            return self.path.replace('/', os.sep) + os.sep + self.filename
+        else:
+            return self.path.replace('/', os.sep)
 
 class EpicClient(object):
     """Client for the EPIC API"""
@@ -289,49 +293,6 @@ class EpicClient(object):
         if not dryrun:
             self.s3.Bucket(bucket['bucket']).download_fileobj(os.path.join(bucket['prefix'], *source.split("/")), destination_obj)
 
-    def upload_directory(self, source_dir, destination_prefix, rel_to='.', status_callback=None, dryrun=False):
-        bucket = self.get_s3_information()
-        source_dir_count = len(source_dir.split(os.path.sep)) - 1
-        for root, dirs, files in os.walk(source_dir):
-            for filename in files:
-                local_path = os.path.join(root, filename)
-                trailing_dir = root.split(os.path.sep)[source_dir_count:]
-                relative_path = os.path.join(os.path.join(os.path.sep, *trailing_dir), filename)
-                key = os.path.join(
-                    bucket['prefix'], destination_prefix.strip("/"), *relative_path.split("/"))
-                try:
-                    self.s3.Object(bucket['bucket'], key).load()
-                    if status_callback is not None:
-                        status_callback('File found in data store, skipping %s %s' % (
-                            key, "(dryrun)" if dryrun else ""))
-                except ClientError as e:
-                    if status_callback is not None:
-                        status_callback(
-                            "Uploading %s %s" % (os.path.join(bucket['prefix'], destination_prefix, relative_path),
-                                                 "(dryrun)" if dryrun else ""))
-                    if not dryrun:
-                        self.s3.Bucket(bucket['bucket']).upload_file(
-                            local_path, key)
-
-    def download_directory(self, source, destination, status_callback=None, dryrun=False):
-        bucket = self.get_s3_information()
-        for obj in self.s3.Bucket(bucket['bucket']).objects.filter(Prefix=bucket['prefix'] + source):
-            filename = os.path.join(destination, obj.key.split("/", 1)[1])
-            if status_callback is not None:
-                status_callback("Downloading %s to %s %s" % (
-                    obj.key, filename, "(dryrun)" if dryrun else ""))
-            if not dryrun:
-                path, file_n = os.path.split(filename)
-                try:
-                    os.makedirs(path)
-                except OSError:
-                    pass
-                try:
-                    self.s3.Bucket(bucket['bucket']).download_file(
-                        obj.key, filename)
-                except ClientError as e:
-                    raise e
-
     def list_epic_path(self, path):
         s3_info = self.get_s3_information()
         key_list = []
@@ -378,20 +339,20 @@ class EpicClient(object):
                 if os.path.isfile(destination):
                     raise CommandError("Destination cannot be a file")
                 for file in self.list_epic_path(source_prefix):
-                    source_key = file['key']
-                    destination_file = os.path.join(destination, file['key'].split('/', 1)[1])
+                    epath = EPICPath(s3_info['bucket'], s3_info['prefix'], file['key'].split("/", 1)[1])
+                    destination_file = os.path.join(destination, epath.get_local_path())
                     if os.path.isfile(destination_file):
                         mod_time = datetime.datetime.fromtimestamp(os.path.getmtime(destination_file), pytz.utc)
                         if mod_time >= file['last_modified']:
-                            print("Skipping epic://{} as destination already exists".format(source_key))
+                            print("Skipping {} as destination already exists".format(epath.get_user_string()))
                             continue
                     if dryrun:
-                        print("Copying from epic://{} to {} (dryrun)".format(source_key, destination_file))
+                        print("Copying from {} to {} (dryrun)".format(epath.get_user_string(), destination_file))
                     else:
-                        print("Copying from epic://{} to {}".format(source_key, destination_file))
+                        print("Copying from {} to {}".format(epath.get_user_string(), destination_file))
                         if not os.path.exists(os.path.dirname(destination_file)):
                             os.makedirs(os.path.dirname(destination_file))
-                        self._download_file(s3_info['bucket'], source_key, str(destination_file))
+                        self._download_file(s3_info['bucket'], epath.get_s3_key(), str(destination_file))
         elif destination.startswith("epic://"):
             # Local to EPIC
             if os.path.isfile(source):
@@ -402,21 +363,18 @@ class EpicClient(object):
                 for file_path in files_path:
                     local_files.append(os.path.join(root, file_path))
             for file in local_files:
-                if file.startswith('./'):
-                    dest_key = s3_info['prefix'] + destination_prefix + file[2:]
-                else:
-                    dest_key = s3_info['prefix'] + destination_prefix + file
-                existing_file = self.get_key_info(dest_key)
+                epath = EPICPath(s3_info['bucket'], s3_info['prefix'], local_to_epic_path(file) )
+                existing_file = self.get_key_info(epath.get_s3_key())
                 if existing_file:
                     mod_time = datetime.datetime.fromtimestamp(os.path.getmtime(file), pytz.utc)
                     if existing_file['LastModified'] >= mod_time:
                         print("Skipping {} as destination already exists".format(file))
                         continue
                 if dryrun:
-                    print("Copying from {} to epic://{} (dryrun)".format(file, dest_key))
+                    print("Copying from {} to {} (dryrun)".format(file, epath.get_user_string()))
                 else:
-                    print("Copying from {} to epic://{}".format(file, dest_key))
-                    self._upload_file(s3_info['bucket'], file, dest_key)
+                    print("Copying from {} to {}".format(file, epath.get_user_string()))
+                    self._upload_file(s3_info['bucket'], file, epath.get_s3_key())
         else:
             raise CommandError("Either SOURCE and/or DESTINATION must be an EPIC Path")
 
@@ -445,3 +403,17 @@ class EpicClient(object):
 
     def list_application_versions(self, app_id):
         return self._get_request(urls.application_version(app_id))
+
+def local_to_epic_path(localfile):
+    if localfile.startswith('.{}'.format(os.sep)):
+        return localfile[2:].replace(os.sep, '/')
+    else:
+        return localfile.replace(os.sep, '/')
+
+def check_path_is_folder(path):
+    if path == ".":
+        return True
+    if path.startswith("epic://"):
+        return path.endswith('/')
+    else:
+        return path.endswith(os.sep)
