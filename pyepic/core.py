@@ -18,6 +18,7 @@ from .exceptions import (
     ResponseError
 )
 
+
 class EPICPath(object):
 
     def __init__(self, bucket, prefix, path, filename=None):
@@ -49,6 +50,7 @@ class EPICPath(object):
             return self.path.replace('/', os.sep) + os.sep + self.filename
         else:
             return self.path.replace('/', os.sep)
+
 
 class EpicClient(object):
     """Client for the EPIC API"""
@@ -285,14 +287,6 @@ class EpicClient(object):
                 pass
             self.s3.Bucket(s3_info['bucket']).download_file(source.get_s3_key(), destination)
 
-    def download_fileobj(self, source, destination_obj, status_callback=None, dryrun=False):
-        bucket = self.get_s3_information()
-        if status_callback is not None:
-            status_callback(
-                'Downloading %s to object %s' % (os.path.join(*source.split("/")), "(dryrun)" if dryrun else ""))
-        if not dryrun:
-            self.s3.Bucket(bucket['bucket']).download_fileobj(os.path.join(bucket['prefix'], *source.split("/")), destination_obj)
-
     def list_epic_path(self, path):
         s3_info = self.get_s3_information()
         key_list = []
@@ -404,11 +398,13 @@ class EpicClient(object):
     def list_application_versions(self, app_id):
         return self._get_request(urls.application_version(app_id))
 
+
 def local_to_epic_path(localfile):
     if localfile.startswith('.{}'.format(os.sep)):
         return localfile[2:].replace(os.sep, '/')
     else:
         return localfile.replace(os.sep, '/')
+
 
 def check_path_is_folder(path):
     if path == ".":
