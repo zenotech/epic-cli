@@ -357,7 +357,7 @@ class EpicClient(object):
                 for file_path in files_path:
                     local_files.append(os.path.join(root, file_path))
             for file in local_files:
-                epath = EPICPath(s3_info['bucket'], s3_info['prefix'], local_to_epic_path(file) )
+                epath = EPICPath(s3_info['bucket'], s3_info['prefix'], local_to_epic_path(file))
                 existing_file = self.get_key_info(epath.get_s3_key())
                 if existing_file:
                     mod_time = datetime.datetime.fromtimestamp(os.path.getmtime(file), pytz.utc)
