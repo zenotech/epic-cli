@@ -5,4 +5,3 @@ boto3==1.9.45
 python-dateutil==2.7.5
 hurry.filesize==0.9
 pytz==2018.7
-

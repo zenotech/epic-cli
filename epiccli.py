@@ -6,6 +6,7 @@ import pprint
 import json
 import ConfigParser
 from pyepic.core import EpicClient
+from pyepic.core import check_path_is_folder
 from pyepic.exceptions import ConfigurationException
 from dateutil.parser import parse
 from hurry.filesize import size
@@ -193,7 +194,7 @@ def upload(ctx, source, destination, dryrun):
     """Upload a file from local SOURCE to DESTINATION Folder
        Destinations should be prefixed with "epic://"\n
        Example, copy ~/my.file to EPIC folder /my_sim_data/\n
-       "epiccli sync upload ~/my.file epic://my_sim_data/"\n
+       "epiccli data upload ~/my.file epic://my_sim_data/"\n
        To upload a whole folder use 'sync'.
        """
     try:
@@ -221,11 +222,11 @@ def sync(ctx, source, destination, dryrun):
        Example, copy from EPIC folder to local folder:\n
        "epiccli sync epic://my_sim_data/ ./local_folder/"  """
     try:
-        if not source.endswith('/'):
-            click.echo("Source does not end in a '/', please specify a folder for the source")
+        if not check_path_is_folder(source):
+            click.echo("Source does not appear to be a folder, please specify a folder for the source")
             return
-        if not destination.endswith('/'):
-            click.echo("Destination does not end in a '/', please specify a folder for the destination")
+        if not check_path_is_folder(destination):
+            click.echo("Destination does appear to be a folder, please specify a folder for the destination")
             return
         click.echo('Synchronising from {} to {}'.format(source, destination))
         ctx.obj.sync_folders(source, destination, dryrun)
