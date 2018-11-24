@@ -1,5 +1,5 @@
 -r requirements.txt
-pytest==4.0.0
+pytest==4.0.1
 pytest-sugar==0.9.2
 pytest-pep8==1.0.6
 pytest-flake8==1.0.2
