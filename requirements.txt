@@ -1,7 +1,7 @@
 pyfiglet==0.7.6
 requests==2.20.1
 Click==7.0
-boto3==1.9.45
+boto3==1.9.73
 python-dateutil==2.7.5
 hurry.filesize==0.9
 pytz==2018.7
