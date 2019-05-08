@@ -3,14 +3,48 @@ import pyfiglet
 import os
 import errno
 import pprint
-import json
 import ConfigParser
-from pyepic.core import EpicClient
-from pyepic.core import check_path_is_folder
+from pyepic.core import (
+    EpicClient,
+    EpicConfigFile,
+    check_path_is_folder
+)
 from pyepic.exceptions import ConfigurationException
 from dateutil.parser import parse
 from hurry.filesize import size
 from hurry.filesize import alternative
+
+
+def load_config(epic_url=None, epic_token=None, config_file=None):
+    """
+    Load config - priority args > env > file
+    """
+    EPIC_API_URL = None
+    EPIC_TOKEN = None
+    EPIC_TEAM = 0
+    EPIC_PROJECT = 0
+    if config_file is not None:
+        click.echo("Loading config from %s" % config_file)
+        ec = EpicConfigFile(config_file)
+        EPIC_API_URL = ec.EPIC_API_URL
+        EPIC_TOKEN = ec.EPIC_TOKEN
+        EPIC_TEAM = ec.EPIC_TEAM
+        EPIC_PROJECT = ec.EPIC_PROJECT
+    EPIC_API_URL = os.environ.get('EPIC_API_ENDPOINT', EPIC_API_URL)
+    EPIC_TOKEN = os.environ.get('EPIC_TOKEN', EPIC_TOKEN)
+    EPIC_TEAM = int(os.environ.get('EPIC_TEAM', EPIC_TEAM))
+    EPIC_PROJECT = int(os.environ.get('EPIC_PROJECT', EPIC_PROJECT))
+    if epic_url is not None:
+        EPIC_API_URL = epic_url
+    if epic_token is not None:
+        EPIC_TOKEN = epic_token
+
+    return {
+        'EPIC_API_URL': EPIC_API_URL,
+        'EPIC_TOKEN': EPIC_TOKEN,
+        'EPIC_TEAM': EPIC_TEAM,
+        'EPIC_PROJECT': EPIC_PROJECT
+    }
 
 
 @click.group()
@@ -20,19 +54,25 @@ def main(ctx, config):
     """CLI for communicating with the EPIC"""
     click.echo(pyfiglet.Figlet().renderText("EPIC by Zenotech"))
     config_file = os.path.expanduser('~/.epic/config')
+    if not os.path.isfile(config_file):
+        config_file = None
+
     if config is not None:
         if os.path.isfile(os.path.expanduser(config)):
             config_file = os.path.expanduser(config)
         else:
-            click.echo("Config file %s not found" % config)
-            exit(1)
+            raise click.ClickException("Config file %s not found" % config)
     try:
-        click.echo("Loading config from %s" % config_file)
-        ec = EpicClient(config_file=config_file)
-        ctx.obj = ec
+        config = load_config(None, None, config_file)
+        print(config)
     except ConfigurationException:
         raise click.ClickException(
             "Configuration file not found or invalid, please run configure.")
+    ec = EpicClient(config['EPIC_API_URL'],
+                    config['EPIC_TOKEN'],
+                    config['EPIC_TEAM'],
+                    config['EPIC_PROJECT'])
+    ctx.obj = ec
 
 
 @main.command()

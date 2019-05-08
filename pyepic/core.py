@@ -52,15 +52,40 @@ class EPICPath(object):
             return self.path.replace('/', os.sep)
 
 
+class EpicConfigFile(object):
+    def __init__(self, config_file):
+        self.EPIC_API_URL = None
+        self.EPIC_TOKEN = None
+        self.EPIC_TEAM = None
+        self.EPIC_PROJECT = None
+        self._load_config(config_file)
+
+    def _load_config(self, configfile):
+        parser = SafeConfigParser(allow_no_value=True)
+        if os.path.isfile(configfile):
+            parser.read(configfile)
+            if parser.has_section('epic'):
+                self.EPIC_API_URL = parser.get('epic', 'url')
+                self.EPIC_TOKEN = parser.get('epic', 'token')
+                self.EPIC_TEAM = parser.getint('epic', 'default_team')
+                self.EPIC_PROJECT = parser.getint('epic', 'default_project')
+        else:
+            raise ConfigurationException(
+                "Invalid EPIC configuration file %s" % configfile)
+
+
 class EpicClient(object):
     """Client for the EPIC API"""
 
-    def __init__(self, epic_url=None, epic_token=None, config_file=None):
+    def __init__(self, epic_url, epic_token, epic_team=0, epic_project=0):
         super(EpicClient, self).__init__()
         self._s3_resource = None
         self._s3_client = None
         self._s3_info = None
-        self._load_config(epic_url, epic_token, config_file)
+        self.EPIC_API_URL = epic_url
+        self.EPIC_TOKEN = epic_token
+        self.EPIC_TEAM = epic_team
+        self.EPIC_PROJECT = epic_project
         self._check_config()
 
     def _get_request_headers(self):
@@ -127,46 +152,13 @@ class EpicClient(object):
         response = self._post_request(urls.AWS_CREATE)
         return response
 
-    def _load_config(self, epic_url=None, epic_token=None, config_file=None):
-        """
-        Load client config, order of precedence = args > env > config_file
-        """
-        self.EPIC_API_URL = None
-        self.EPIC_TOKEN = None
-        self.EPIC_TEAM = 0
-        self.EPIC_PROJECT = 0
-        if config_file is not None:
-            self._load_config_file(config_file)
-            self._config_file = config_file
-        self.EPIC_API_URL = os.environ.get('EPIC_API_ENDPOINT', self.EPIC_API_URL)
-        self.EPIC_TOKEN = os.environ.get('EPIC_TOKEN', self.EPIC_TOKEN)
-        self.EPIC_TEAM = int(os.environ.get('EPIC_TEAM', self.EPIC_TEAM))
-        self.EPIC_PROJECT = int(os.environ.get('EPIC_PROJECT', self.EPIC_PROJECT))
-        if epic_url is not None:
-            self.EPIC_API_URL = epic_url
-        if epic_token is not None:
-            self.EPIC_TOKEN = epic_token
-
     def _check_config(self):
         if self.EPIC_API_URL is None:
             raise ConfigurationException(
-                "Missing EPIC URL, set EPIC_API_URL or supply a configuration file")
+                "Missing EPIC URL, set EPIC_API_ENDPOINT or supply a configuration file")
         elif self.EPIC_TOKEN is None:
             raise ConfigurationException(
-                "Missing EPIC URL, set EPIC_TOKEN or supply a configuration file")
-
-    def _load_config_file(self, file):
-        parser = SafeConfigParser(allow_no_value=True)
-        if os.path.isfile(file):
-            parser.read(file)
-            if parser.has_section('epic'):
-                self.EPIC_API_URL = parser.get('epic', 'url')
-                self.EPIC_TOKEN = parser.get('epic', 'token')
-                self.EPIC_TEAM = parser.getint('epic', 'default_team')
-                self.EPIC_PROJECT = parser.getint('epic', 'default_project')
-        else:
-            raise ConfigurationException(
-                "Invalid EPIC configuration file %s" % file)
+                "Missing EPIC API TOKEN, set EPIC_TOKEN or supply a configuration file")
 
     def write_config_file(self, file=None):
         output_file = file if file is not None else self._config_file
