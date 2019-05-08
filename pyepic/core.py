@@ -29,25 +29,25 @@ class EPICPath(object):
             self.path = path[len(self.protocol):]
         else:
             self.path = path
-        if self.path.endswith(os.sep):
+        if self.path.endswith(os.sep) or self.path.endswith('/'):
             self.path = self.path[:-1]
         self.filename = filename
 
     def get_s3_key(self):
         if self.filename:
-            return self.prefix + '/' + self.path + '/' + self.filename
+            return '/'.join([self.prefix, self.path, self.filename])
         else:
-            return self.prefix + '/' + self.path
+            return '/'.join([self.prefix, self.path])
 
     def get_user_string(self):
         if self.filename:
-            return self.protocol + self.path + '/' + self.filename
+            return '/'.join([self.protocol + self.path, self.filename])
         else:
             return self.protocol + self.path
 
     def get_local_path(self):
         if self.filename:
-            return self.path.replace('/', os.sep) + os.sep + self.filename
+            return os.path.join(self.path.replace('/', os.sep), self.filename)
         else:
             return self.path.replace('/', os.sep)
 
@@ -232,11 +232,11 @@ class EpicClient(object):
             print("Deleting {}".format(file.get_user_string()))
             self.s3_client.delete_object(Bucket=s3_info['bucket'], Key=file.get_s3_key())
 
-    def delete_folder(self, folder, dryrun):
+    def delete_folder(self, source, dryrun):
         s3_info = self.get_s3_information()
         if not source.startswith("epic://"):
             raise CommandError("PATH must be an EPIC Path")
-        source_prefix = source[6:]
+        source_prefix = source[7:]
         for file in self.list_epic_path(source_prefix):
             epath = EPICPath(s3_info['bucket'], s3_info['prefix'], file['key'].split("/", 1)[1])
             if dryrun:
@@ -282,8 +282,8 @@ class EpicClient(object):
     def list_epic_path(self, path):
         s3_info = self.get_s3_information()
         key_list = []
-        s3_prefix = s3_info['prefix'] + path
-        for obj in self.s3.Bucket(s3_info['bucket']).objects.filter(Prefix=s3_info['prefix'] + path):
+        s3_prefix = '/'.join([s3_info['prefix'], path])
+        for obj in self.s3.Bucket(s3_info['bucket']).objects.filter(Prefix=s3_prefix):
             key_list.append({'key': obj.key, 'last_modified': obj.last_modified, 'size': obj.size})
         return key_list
 
@@ -296,17 +296,20 @@ class EpicClient(object):
         except ClientError as e:
             raise e
 
-    def _s3_copy(self, source, destination, dryrun=False):
+    def _s3_copy(self, s3_info, source, destination, dryrun=False):
         # S3 to S3 sync
-        source_prefix = source[6:]
-        destination_prefix = destination[6:]
+        source_prefix = source[7:].rstrip('/')
+        destination_prefix = destination[7:].rstrip('/')
         for file in self.list_epic_path(source_prefix):
             source_key = file['key']
-            dest_key = s3_info['prefix'] + destination_prefix + file['key'].split('/', 1)[1]
+            dest_file = file['key'].split('/', 1)[1]
+            if dest_file.startswith(source_prefix):
+                dest_file = dest_file[len(source_prefix)+1:]  # +1 to remove the leading slash
+            dest_key = '/'.join([s3_info['prefix'], destination_prefix, dest_file])
             existing_file = self.get_key_info(dest_key)
             if existing_file:
                 if existing_file['LastModified'] >= file['last_modified']:
-                    print("Skipping epic://{} as destination already exists".format(source_key))
+                    print("Skipping epic://{} as destination {} already exists".format(source_key, dest_key))
                     continue
             if dryrun:
                 print("Copy from epic://{} to epic://{} (dryrun)".format(source_key, dest_key))
@@ -318,19 +321,22 @@ class EpicClient(object):
         s3_info = self.get_s3_information()
         if source.startswith("epic://"):
             if destination.startswith("epic://"):
-                self._s3_copy(source, destination, dryrun=dryrun)
+                self._s3_copy(s3_info, source, destination, dryrun=dryrun)
             else:
                 # EPIC to local sync
-                source_prefix = source[6:]
+                source_prefix = source[7:].rstrip('/')
                 if os.path.isfile(destination):
                     raise CommandError("Destination cannot be a file")
                 for file in self.list_epic_path(source_prefix):
                     epath = EPICPath(s3_info['bucket'], s3_info['prefix'], file['key'].split("/", 1)[1])
-                    destination_file = os.path.join(destination, epath.get_local_path())
+                    destination_file = epath.get_local_path()
+                    if destination_file.startswith(source_prefix):
+                        destination_file = destination_file[len(source_prefix)+1:]  # + 1 removes the leading slash
+                    destination_file = os.path.join(destination, destination_file)
                     if os.path.isfile(destination_file):
                         mod_time = datetime.datetime.fromtimestamp(os.path.getmtime(destination_file), pytz.utc)
                         if mod_time >= file['last_modified']:
-                            print("Skipping {} as destination already exists".format(epath.get_user_string()))
+                            print("Skipping {} as destination file {} already exists".format(epath.get_user_string(), destination_file))
                             continue
                     if dryrun:
                         print("Copying from {} to {} (dryrun)".format(epath.get_user_string(), destination_file))
@@ -344,12 +350,12 @@ class EpicClient(object):
             if os.path.isfile(source):
                 raise CommandError("Source cannot be a file")
             local_files = []
-            destination_prefix = destination[6:]
+            destination_prefix = destination[7:].rstrip('/')
             for root, directory_path, files_path in os.walk(source):
                 for file_path in files_path:
                     local_files.append(os.path.join(root, file_path))
             for file in local_files:
-                epath = EPICPath(s3_info['bucket'], s3_info['prefix'], local_to_epic_path(file))
+                epath = EPICPath(s3_info['bucket'], s3_info['prefix'], '/'.join([destination_prefix, local_to_epic_path(file)]))
                 existing_file = self.get_key_info(epath.get_s3_key())
                 if existing_file:
                     mod_time = datetime.datetime.fromtimestamp(os.path.getmtime(file), pytz.utc)
