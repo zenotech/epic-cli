@@ -3,7 +3,7 @@ python:
 - 2.7
 - 3.5
 - 3.6
-install: pip install tox-travis
+install: pip install setuptools-version-command tox-travis
 script: tox
 before_deploy: pip install setuptools-version-command
 deploy:

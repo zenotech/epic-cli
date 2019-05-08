@@ -12,7 +12,6 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/zenotech/epic-cli",
-    setup_requires=["setuptools-version-command"],
     py_modules=['epiccli'],
     packages=setuptools.find_packages(),
     classifiers=[
