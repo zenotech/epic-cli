@@ -1,7 +1,14 @@
 language: python
 python:
-    - 2.7
-    - 3.5
-    - 3.6
+- 2.7
+- 3.5
+- 3.6
 install: pip install tox-travis
 script: tox
+deploy:
+  provider: pypi
+  user: jsharpe
+  password:
+    secure: Uc6xLctIBNGILM25OttmZgMfv5LX23wDSFmUKwgd1L0ujvFsfj+L6C3rqqSy+id3ujlLFZvChXmifiENVAuv7bdzBZ6zoKRogr6k4im8af5l04Ku/YByJ3+ReB7VdlJiU6SR2J+NdtbkG9WhbToOeJdkF8aiqU3QTkHJQ1wmO58jPhBM75jRY8OaDVxdWc0sthXSZ430EpKKhzuQlkNm0GnolH2C3DI4heLYzfEK3WhFMiyxWC7md2RsVIR8TbP6TQUU//pYWApIF+FvM9DQrd0agocUEqKkbjbNyCULwnrb7RNWiU18QUc0Gbk3P6z97JN2GTkucTm8Sc3FUqiXVAmUkJ48bNx/YZTlIMt2Sc0NKb3HSMqlz1JWID7CQudOcPgE3piP0iiBIE5YkZ2j/mnXgJRftx73LvNHQon9PKwTdd7ZbuiyfXAwlUO0vMN+E3ADwqy43fmGa3DD07UonFXPJcu4wQTuTCz89aPL/+Me8CbUe7GK39djTpeTB0ntxXGxz6unrD0rRj4VP1bgjrLIb44sUwb1k84v+YeZqbSgEVorl14luZZAVQYPkz7U0o3ic+vUBloU1Qvk0FRc0EucS44lKCUgXXBbypM/sTO5eeW3HreMJZN0sRmfStv92IIYJcHs+r+AoQY2x2ZHk8yvoGMpiWk5k0XLwsaF+ao=
+  on:
+    tags: true
