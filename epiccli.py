@@ -19,7 +19,7 @@ def load_config(epic_url=None, epic_token=None, config_file=None):
     """
     Load config - priority args > env > file
     """
-    EPIC_API_URL = None
+    EPIC_API_URL = "https://epic.zenotech.com"
     EPIC_TOKEN = None
     EPIC_TEAM = 0
     EPIC_PROJECT = 0
