@@ -64,7 +64,6 @@ def main(ctx, config):
             raise click.ClickException("Config file %s not found" % config)
     try:
         config = load_config(None, None, config_file)
-        print(config)
     except ConfigurationException:
         raise click.ClickException(
             "Configuration file not found or invalid, please run configure.")
