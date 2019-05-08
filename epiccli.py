@@ -31,7 +31,7 @@ def main(ctx, config):
         ec = EpicClient(config_file=config_file)
         ctx.obj = ec
     except ConfigurationException:
-        click.echo(
+        raise click.ClickException(
             "Configuration file not found or invalid, please run configure.")
 
 
@@ -72,7 +72,7 @@ def configure(ctx):
         os.makedirs(os.path.dirname(config_file))
     except OSError as e:
         if e.errno != errno.EEXIST:
-            raise
+            raise click.ClickException(str(e))
     with open(config_file, 'wb') as configfile:
         config.write(configfile)
         click.echo("Config file written to %s" % config_file)
@@ -131,7 +131,7 @@ def list(ctx, filepath):
             last_modified = parse(file['last_modified'])
             click.echo('{} | {} | {}'.format(last_modified.strftime("%m:%H %d-%m-%Y"), size(file['size'], system=alternative), '/' + path))
     except Exception as e:
-        click.echo("Error: {}".format(str(e)))
+        raise click.ClickException("Error: {}".format(str(e)))
 
 
 @data.command("rm")
@@ -178,7 +178,7 @@ def download(ctx, source, destination, dryrun, f):
         else:
             click.echo("Please use 'sync' to download folders")
     except Exception as e:
-        click.echo("Download failed, %s" % e)
+        raise click.ClickException("Download failed, %s" % e)
 
 
 def echo_callback(msg):
@@ -207,7 +207,7 @@ def upload(ctx, source, destination, dryrun):
         else:
             click.echo("File {} not found.".format(source))
     except Exception as e:
-        print("Upload failed, %s" % e)
+        raise click.ClickException("Upload failed, %s" % e)
 
 
 @data.command()
@@ -232,7 +232,7 @@ def sync(ctx, source, destination, dryrun):
         ctx.obj.sync_folders(source, destination, dryrun)
         click.echo('Sync complete')
     except Exception as e:
-        print("Sync failed, %s" % e)
+        raise click.ClickException("Sync failed, %s" % e)
 
 
 @main.group()
