@@ -361,20 +361,12 @@ def list(ctx):
     click.echo("-----------------------------------------")
     qlist = sorted(ctx.obj.list_queue_status(), key=lambda k: k['id'])
     for queue in qlist:
-        if 'accelerator' in queue:
-            click.echo("{} | {} | {} | {} | {} | {}".format(queue['id'],
-                                                            queue['cluster_name'],
-                                                            queue['name'],
-                                                            queue['cpu_generation'],
-                                                            queue['accelerator'],
-                                                            queue['max_cores']))
-        else:
-            click.echo("{} | {} | {} | {} | {} | {}".format(queue['id'],
-                                                            queue['cluster_name'],
-                                                            queue['name'],
-                                                            queue['cpu_generation'],
-                                                            "--",
-                                                            queue['max_cores']))
+        click.echo("{} | {} | {} | {} | {} | {}".format(queue['id'],
+                                                        queue['cluster_name'],
+                                                        queue['name'],
+                                                        queue['cpu_generation'],
+                                                        queue.get('accelerator', "--"),
+                                                        queue['max_cores']))
 
 
 @queues.command()
