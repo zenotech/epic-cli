@@ -6,6 +6,9 @@ Status](https://travis-ci.org/zenotech/epic-cli.svg?branch=master)](https://trav
 
 ## Installation
 
+### From PyPi
+You can install the package from PyPi using pip with `pip install epiccli`
+
 ### From Github
 Clone this repository and then install `epiccli` by navigating to the root directory and running `pip install --editable .`
 
