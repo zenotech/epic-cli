@@ -218,7 +218,7 @@ class EpicClient(object):
         s3_info = self.get_s3_information()
         try:
             return self.s3_client.head_object(Bucket=s3_info['bucket'], Key=key)
-        except botocore.exceptions.ClientError as e:
+        except botocore.exceptions.ClientError:
             return None
 
     def delete_file(self, file, dryrun):
@@ -227,7 +227,7 @@ class EpicClient(object):
             raise CommandError("PATH must be an EPIC Path")
         file = EPICPath(s3_info['bucket'], s3_info['prefix'], file.split("/", 1)[1])
         if dryrun:
-                print("Deleting {} (dryrun)".format(file.get_user_string()))
+            print("Deleting {} (dryrun)".format(file.get_user_string()))
         else:
             print("Deleting {}".format(file.get_user_string()))
             self.s3_client.delete_object(Bucket=s3_info['bucket'], Key=file.get_s3_key())
@@ -270,7 +270,7 @@ class EpicClient(object):
             raise CommandError("SOURCE must be an EPIC Path")
         source = EPICPath(s3_info['bucket'], s3_info['prefix'], os.path.dirname(source), os.path.basename(source))
         if dryrun:
-                print("Downloading {} to {} (dryrun)".format(source.get_user_string(), destination))
+            print("Downloading {} to {} (dryrun)".format(source.get_user_string(), destination))
         else:
             print("Downloading {} to {}".format(source.get_user_string(), destination))
             try:
@@ -304,7 +304,7 @@ class EpicClient(object):
             source_key = file['key']
             dest_file = file['key'].split('/', 1)[1]
             if dest_file.startswith(source_prefix):
-                dest_file = dest_file[len(source_prefix)+1:]  # +1 to remove the leading slash
+                dest_file = dest_file[len(source_prefix) + 1:]  # +1 to remove the leading slash
             dest_key = '/'.join([s3_info['prefix'], destination_prefix, dest_file])
             existing_file = self.get_key_info(dest_key)
             if existing_file:
@@ -331,7 +331,7 @@ class EpicClient(object):
                     epath = EPICPath(s3_info['bucket'], s3_info['prefix'], file['key'].split("/", 1)[1])
                     destination_file = epath.get_local_path()
                     if destination_file.startswith(source_prefix):
-                        destination_file = destination_file[len(source_prefix)+1:]  # + 1 removes the leading slash
+                        destination_file = destination_file[len(source_prefix) + 1:]  # + 1 removes the leading slash
                     destination_file = os.path.join(destination, destination_file)
                     if os.path.isfile(destination_file):
                         mod_time = datetime.datetime.fromtimestamp(os.path.getmtime(destination_file), pytz.utc)
