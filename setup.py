@@ -15,13 +15,15 @@ setuptools.setup(
     py_modules=['epiccli'],
     packages=setuptools.find_packages(),
     classifiers=[
-        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         "License :: OSI Approved :: BSD License",
         "Operating System :: OS Independent",
     ],
     entry_points='''
         [console_scripts]
-        epiccli=epiccli:main
+        epic=epic:main
     ''',
     install_requires=[
         'Click',
@@ -29,6 +31,7 @@ setuptools.setup(
         'pyfiglet',
         'boto3',
         'botocore',
+        'pyepic>=0.0.6',
         'pytz',
         'python-dateutil',
         'hurry.filesize'
