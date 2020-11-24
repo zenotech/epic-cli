@@ -1,12 +1,16 @@
+.coverage
+/coverage.xml
+/htmlcov
+junit.xml
 
 \.idea/
-
-Epic_CLI\.egg-info/
-epiccli\.egg-info/
+/epiccli.egg-info
+/pip-wheel-metadata
 *\.pyc
 *\.pyo
 
-dist/
-.tox/
+/dist/
+/\.tox/
 
+\.venv/
 \.vscode/
