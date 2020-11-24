@@ -36,7 +36,7 @@ class EPICPath(object):
 
 
 def local_to_epic_path(localfile: str):
-    if localfile.startswith(os.spe):
+    if localfile.startswith(os.sep):
         localfile = localfile[1:]
 
     if localfile.startswith(".{}".format(os.sep)):
