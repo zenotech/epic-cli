@@ -3,9 +3,11 @@ import setuptools
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+version = os.environ.get('RELEASE_VERSION', '0.0.0')
+
 setuptools.setup(
     name="epiccli",
-    version_command='git describe',
+    version=version,
     author="Zenotech Ltd",
     author_email="support@zenotech.com",
     description="A command line interface for EPIC HPC",
