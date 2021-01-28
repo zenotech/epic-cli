@@ -1,7 +1,0 @@
--r requirements.txt
-pytest
-pytest-sugar
-pytest-coverage
-pytest-mypy
-pytest-black
-boto3-stubs

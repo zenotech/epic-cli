@@ -1,3 +1,35 @@
+# BSD 3 - Clause License
+
+# Copyright(c) 2020, Zenotech
+# All rights reserved.
+
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+
+# 1. Redistributions of source code must retain the above copyright notice, this
+# list of conditions and the following disclaimer.
+
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+# this list of conditions and the following disclaimer in the documentation
+# and / or other materials provided with the distribution.
+
+# 3. Neither the name of the copyright holder nor the names of its
+# contributors may be used to endorse or promote products derived from
+# this software without specific prior written permission.
+
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+#         SERVICES
+#         LOSS OF USE, DATA, OR PROFITS
+#         OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 import click
 import pyfiglet
 import os
@@ -5,12 +37,10 @@ import errno
 import pprint
 import json
 import configparser
-from epiccli.core import EpicClient
+from pathlib import Path
+from epiccli.core import EpicConfig
 from epiccli.path import check_path_is_folder
 from epiccli.exceptions import ConfigurationException
-from dateutil.parser import parse
-from hurry.filesize import size
-from hurry.filesize import alternative
 from pyepic.client import EPICClient
 
 DEFAULT_URL = "https://epic.zenotech.com"
@@ -31,7 +61,7 @@ def main(ctx, config):
     if ctx.invoked_subcommand == "configure":
         return
 
-    config_file = os.path.expanduser("~/.epic/config")
+    config_file = os.path.join(Path.home(), '.epic', 'config')
     if config is not None:
         if os.path.isfile(os.path.expanduser(config)):
             config_file = os.path.expanduser(config)
@@ -40,16 +70,16 @@ def main(ctx, config):
             exit(1)
     try:
         click.echo("Loading config from %s" % config_file)
-        # V1 API Client
-        ec = EpicClient(config_file=config_file)
+        
+        config = EpicConfig(config_file=config_file)
 
         # V2 API Client
         epic = EPICClient(
-            connection_token=ec.EPIC_TOKEN,
-            connection_url="{}/api/v2".format(ec.EPIC_API_URL),
+            connection_token=config.EPIC_TOKEN,
+            connection_url="{}/api/v2".format(config.EPIC_API_URL),
         )
 
-        ctx.obj = (ec, epic)
+        ctx.obj = (config, epic)
     except ConfigurationException:
         click.echo("Configuration file not found or invalid, please run configure.")
         exit(1)
@@ -62,29 +92,27 @@ def configure(ctx):
     click.echo("Configuring EPIC Cli")
     default_url = DEFAULT_URL
     default_token = ""
-    config_file = "~/.epic/config"
+    config_file = os.path.join(Path.home(), '.epic', 'config')
     if os.path.isfile(config_file):
         try:
-            ec = EpicClient(config_file=config_file)
-            default_url = ec.EPIC_API_URL
-            default_token = ec.EPIC_TOKEN
+            click.echo("loading")
+            config = EpicConfig(config_file=config_file)
+            default_url = config.EPIC_API_URL
+            default_token = config.EPIC_TOKEN
         except ConfigurationException as e:
             pass
     epic_url = click.prompt(
         "Please enter the EPIC Url to connect to", default=default_url
     )
-    if click.confirm("Do you already have an EPIC API token?"):
-        token = click.prompt("Please enter your EPIC API token", default=default_token)
-    else:
-        username = click.prompt("EPIC Username (email)?")
-        password = click.prompt("Password?", hide_input=True)
-        ec = EpicClient(epic_url=epic_url, epic_token="")
-        token = ec.get_security_token(username, password)
+
+    token = click.prompt(
+        "Please enter your EPIC API token", default=default_token
+    )
+
     config = configparser.RawConfigParser()
     config.add_section("epic")
     config.set("epic", "url", epic_url)
     config.set("epic", "token", token)
-    config.set("epic", "default_team", 0)
     config_file = os.path.expanduser(config_file)
     try:
         os.makedirs(os.path.dirname(config_file))
@@ -110,8 +138,8 @@ def list_projectcodes(ctx):
     click.echo("Your available EPIC Projects:")
     click.echo("ID | Name | Budget | Spend | Open")
     click.echo("-----------------------------")
-    for project in ctx.obj[1].list_projects():
-        project_details = ctx.obj[1].get_project_details(project.pk)
+    for project in ctx.obj[1].projects.list():
+        project_details = ctx.obj[1].projects.get_details(project.pk)
         open_str = "No" if project_details.closed else "Yes"
         budget = (
             format_localised_currency(project_details.spend_limit)
@@ -138,57 +166,41 @@ def data(ctx):
 
 @data.command("ls")
 @click.pass_context
-@click.argument("filepath", required=False, type=str)
-def list(ctx, filepath):
-    """List data in your EPIC data store or in FILEPATH"""
+@click.argument("epicpath", required=False, type=str)
+def list(ctx, epicpath):
+    """List data in your EPIC data store"""
     click.echo("EPIC data list")
-    click.echo("Last Modified | Size | Path ")
     click.echo("-----------------------------")
 
-    if filepath:
-        filepath = filepath.strip("/")
+    if epicpath is None:
+        epicpath = "epic://"
     try:
-        response = ctx.obj[0].list_data_locations(filepath)
-        for folder in response["folders"]:
-            path = folder["obj_key"].split("/", 1)[1]
-            last_modified = parse(folder["last_modified"])
-            click.echo(
-                "{} | {} | {}".format(
-                    last_modified.strftime("%m:%H %d-%m-%Y"), "--", "/" + path
-                )
-            )
-        for file in response["files"]:
-            path = file["obj_key"].split("/", 1)[1]
-            last_modified = parse(file["last_modified"])
-            click.echo(
-                "{} | {} | {}".format(
-                    last_modified.strftime("%m:%H %d-%m-%Y"),
-                    size(file["size"], system=alternative),
-                    "/" + path,
-                )
-            )
+        response = ctx.obj[1].data.ls(epicpath)
+        for item in response:
+            click.echo(f"{item.obj_path}")
     except Exception as e:
         click.echo("Error: {}".format(str(e)))
 
 
 @data.command("rm")
 @click.pass_context
-@click.argument("filepath")
+@click.argument("epicpath")
 @click.option(
     "--dryrun",
     help="Show what actions will take place but do not execute them",
     is_flag=True,
 )
-@click.option("--R", help="Recusive delete", is_flag=True)
-def remove(ctx, filepath, dryrun, r):
+def delete(ctx, epicpath, dryrun):
     """Delete a file from EPIC"""
-    if filepath.endswith("/"):
-        click.echo("Deleting folder %s" % filepath)
-        ctx.obj[0].delete_folder(filepath, dryrun)
+    if epicpath.endswith("/"):
+        click.echo("Deleting folder {} {}".format(epicpath, "(dryrun)" if dryrun else ""))
+        items = ctx.obj[1].data.delete(epicpath, dryrun = dryrun)
     else:
-        click.echo("Deleting file %s" % filepath)
-        ctx.obj[0].delete_file(filepath, dryrun)
-
+        click.echo("Deleting file {} {}".format(epicpath, "(dryrun)" if dryrun else ""))
+        items = ctx.obj[1].data.delete(epicpath, dryrun = dryrun)
+    for item in items:
+        click.echo("Deleted {} {}".format(item, "(dryrun)" if dryrun else ""))
+    return
 
 @data.command()
 @click.pass_context
@@ -196,13 +208,8 @@ def remove(ctx, filepath, dryrun, r):
     "source",
 )
 @click.argument("destination")
-@click.option(
-    "--dryrun",
-    help="Show what actions will take place but do not execute them",
-    is_flag=True,
-)
 @click.option("-f", help="Overwrite file if it exists locally", is_flag=True)
-def download(ctx, source, destination, dryrun, f):
+def download(ctx, source, destination, f):
     """Download a file from EPIC SOURCE to local DESTINATION
     SOURCE should be prefixed with "epic://"\n
     Example, download EPIC file from /my_sim_data/my.file to directory ./work/\n
@@ -220,16 +227,12 @@ def download(ctx, source, destination, dryrun, f):
                     click.echo("Destination file exists. Use -f to overwrite")
                     return
         if not source.endswith("/"):
-            ctx.obj[0].download_file(source, destination, dryrun=dryrun)
+            ctx.obj[1].data.download_file(source, destination)
             click.echo("Download complete")
         else:
             click.echo("Please use 'sync' to download folders")
     except Exception as e:
         click.echo("Download failed, %s" % e)
-
-
-def echo_callback(msg):
-    click.echo(msg)
 
 
 @data.command()
@@ -238,12 +241,7 @@ def echo_callback(msg):
     "source",
 )
 @click.argument("destination")
-@click.option(
-    "--dryrun",
-    help="Show what actions will take place but do not execute them",
-    is_flag=True,
-)
-def upload(ctx, source, destination, dryrun):
+def upload(ctx, source, destination):
     """Upload a file from local SOURCE to DESTINATION Folder
     Destinations should be prefixed with "epic://"\n
     Example, copy ~/my.file to EPIC folder /my_sim_data/\n
@@ -254,7 +252,7 @@ def upload(ctx, source, destination, dryrun):
         if os.path.exists(source):
             if os.path.isfile(source):
                 source = click.format_filename(source)
-                ctx.obj[0].upload_file(source, destination, dryrun=dryrun)
+                ctx.obj[1].data.upload_file(source, destination)
             else:
                 click.echo("Please use 'sync' to upload folders")
         else:
@@ -262,6 +260,12 @@ def upload(ctx, source, destination, dryrun):
     except Exception as e:
         print("Upload failed, %s" % e)
 
+
+def sync_callback(source_path, target_path, uploaded):
+    if uploaded:
+        click.echo(f"Copied {source_path} to {target_path}")
+    else:
+        click.echo(f"Did not copy {source_path} to {target_path}")
 
 @data.command()
 @click.pass_context
@@ -272,7 +276,11 @@ def upload(ctx, source, destination, dryrun):
     help="Show what actions will take place but do not execute them",
     is_flag=True,
 )
-def sync(ctx, source, destination, dryrun):
+@click.option('--overwrite/--no-overwrite',
+              help="Overwrite existing files if last modified time is more recent in source",
+              default=True,
+              show_default=True)
+def sync(ctx, source, destination, dryrun, overwrite):
     """Synchronise contents of SOURCE to DESTINATION.
     EPIC destinations should be prefixed with "epic://".
     Copies files from SOURCE that do not exist in DESTINATION.\n
@@ -289,8 +297,8 @@ def sync(ctx, source, destination, dryrun):
                 "Destination does appear to be a folder, please specify a folder for the destination"
             )
             return
-        click.echo("Synchronising from {} to {}".format(source, destination))
-        ctx.obj[0].sync_folders(source, destination, dryrun)
+        click.echo("Synchronising from {} to {} {}".format(source, destination, "(dryrun)" if dryrun else ""))
+        ctx.obj[1].data.sync(source, destination, dryrun=dryrun, callback=sync_callback, overwrite_existing=overwrite)
         click.echo("Sync complete")
     except Exception as e:
         print("Sync failed, %s" % e)
@@ -305,12 +313,13 @@ def job(ctx):
 
 @job.command()
 @click.pass_context
-def list(ctx):
+@click.option('--n', default=10, help="List last n jobs",  show_default=True)
+def list(ctx, n):
     """List active jobs"""
     click.echo("Your EPIC HPC Jobs")
     click.echo("Job ID | Name | Application | Submitted by | Submitted | Status ")
     click.echo("-----------------------------------------")
-    jlist = ctx.obj[1].list_jobs()
+    jlist = ctx.obj[1].job.list(limit=n)
     for job in jlist:
         click.echo(
             f"{job.id} | {job.name} | {job.app} | {job.submitted_by} | {job.submitted_at} | {job.status}"
@@ -323,15 +332,15 @@ def list(ctx):
 def cancel(ctx, job_id):
     """Cancel a job"""
     click.echo("Cancelling job ID {}".format(job_id))
-    pprint.pprint(ctx.obj[0].cancel_job(job_id))
+    pprint.pprint(ctx.obj[1].job.cancel(job_id))
 
 
 @job.command()
 @click.pass_context
-@click.argument("ID")
-def details(ctx, id):
+@click.argument("job_id")
+def details(ctx, job_id):
     """Get details of job ID"""
-    pprint.pprint(ctx.obj[1].get_job_details(id))
+    pprint.pprint(ctx.obj[1].job.get_details(job_id))
 
 
 @main.group()
@@ -345,59 +354,11 @@ def team(ctx):
 @click.pass_context
 def list(ctx):
     """List your available EPIC teams"""
-    click.echo("Your available EPIC Teams (* current team)")
+    click.echo("Your available EPIC Teams")
     click.echo("ID | Name")
     click.echo("-----------------")
-    for team in ctx.obj[1].list_teams():
-        if team.id == ctx.obj[0].EPIC_TEAM:
-            click.echo(f"{team.id}* |  {team.name}")
-        else:
-            click.echo(f"{team.id} | {team.name}")
-
-
-@team.command()
-@click.pass_context
-@click.option("--id", help="Switch to team with id", required=False, type=int)
-def switch(ctx, id):
-    """Switch your active EPIC team """
-    if id:
-        new_team_id = id
-        teams_list = ctx.obj[1].list_teams()
-    else:
-        click.echo("Your available EPIC Teams (* current team)")
-        click.echo("ID | Name")
-        click.echo("-----------------")
-        click.echo(
-            "0{} | Back to your account".format(
-                "*" if ctx.obj[0].EPIC_TEAM == 0 else ""
-            )
-        )
-        teams_list = ctx.obj[1].list_teams()
-        for team in teams_list:
-            team_id = team.id
-            click.echo(
-                "{}{} | {}".format(
-                    team_id,
-                    "*" if team_id == ctx.obj[0].EPIC_TEAM else "",
-                    team.name,
-                )
-            )
-        new_team_id = click.prompt(
-            "Enter the ID of the team you would like to switch to",
-            type=int,
-            default=ctx.obj[0].EPIC_TEAM,
-        )
-    if new_team_id == 0:
-        ctx.obj[0].EPIC_TEAM = 0
-        ctx.obj[0].write_config_file()
-        click.echo("Team ID set to %s" % new_team_id)
-        return
-    if not any(team.id == int(new_team_id) for team in teams_list):
-        click.echo("Sorry, team with ID %s does not exist" % new_team_id)
-    else:
-        ctx.obj[0].EPIC_TEAM = int(new_team_id)
-        ctx.obj[0].write_config_file()
-        click.echo("Team ID set to %s" % new_team_id)
+    for team in ctx.obj[1].teams.list():
+        click.echo(f"{team.id} |  {team.name}")
 
 
 @main.group()
@@ -416,7 +377,7 @@ def list(ctx):
         "ID | Cluster Name | Queue Name | CPU Type | GPU Type | Total CPU Cores "
     )
     click.echo("-----------------------------------------")
-    qlist = ctx.obj[1].list_clusters()
+    qlist = ctx.obj[1].catalog.list_clusters()
     for queue in qlist:
         click.echo(
             "{} | {} | {} | {} | {} | {}".format(
@@ -439,7 +400,7 @@ def details(ctx, id):
     """Print the details of queue ID"""
     click.echo(f"HPC Cluster {id} details")
     click.echo("-----------------------------------------")
-    queue_details = ctx.obj[1].get_queue_details(id)
+    queue_details = ctx.obj[1].catalog.queue_details(id)
     pprint.pprint(queue_details)
 
 
