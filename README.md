@@ -1,11 +1,16 @@
 # Epic by Zenotech - Command Line Interface
-[![PyPI version](https://badge.fury.io/py/epiccli.svg)](https://badge.fury.io/py/epiccli) 
+[![Documentation Status](https://readthedocs.org/projects/epic-cli/badge/?version=latest)](http://epic-cli.readthedocs.io/?badge=latest) [![PyPI version](https://badge.fury.io/py/epiccli.svg)](https://badge.fury.io/py/epiccli) 
+
+
 [EPIC](epic.zenotech.com) is a cloud platform for interfacing with HPC resources. This Python CLI demonstrates the `pyepic` module, which interfaces with the EPIC REST API.
 
 ## Installation
 
 ### From PyPi
 You can install the package from PyPi using pip with `pip install epiccli`
+
+### Documentation
+Documentation is available on [read the docs](http://epic-cli.readthedocs.io/?badge=latest).
 
 ## Usage
 To get started run `epic configure` and enter your EPIC configuration details. This will generate the configuration file for the program.
