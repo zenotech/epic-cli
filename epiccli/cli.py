@@ -38,10 +38,12 @@ import pprint
 import json
 import configparser
 from pathlib import Path
-from epiccli.core import EpicConfig
-from epiccli.path import check_path_is_folder
-from epiccli.exceptions import ConfigurationException
 from pyepic.client import EPICClient
+
+from .core import EpicConfig
+from .path import check_path_is_folder
+from .exceptions import ConfigurationException
+
 
 DEFAULT_URL = "https://epic.zenotech.com"
 
