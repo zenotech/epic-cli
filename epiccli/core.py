@@ -32,7 +32,7 @@
 
 import os
 import errno
-from configparser import SafeConfigParser, RawConfigParser
+from configparser import ConfigParser
 
 from .exceptions import ConfigurationException, CommandError, ResponseError
 
@@ -40,19 +40,19 @@ from .exceptions import ConfigurationException, CommandError, ResponseError
 class EpicConfig(object):
     """ Class for loading and checking CLI configuration """
 
-    def __init__(self, epic_url=None, epic_token=None, config_file=None):
+    def __init__(self, epic_url=None, epic_token=None, config_file=None, config_section="default"):
         super(EpicConfig, self).__init__()
-        self._load_config(epic_url, epic_token, config_file)
+        self._load_config(epic_url, epic_token, config_file, config_section)
         self._check_config()
 
-    def _load_config(self, epic_url=None, epic_token=None, config_file=None):
+    def _load_config(self, epic_url=None, epic_token=None, config_file=None, config_section='default'):
         """
         Load client config, order of precedence = args > env > config_file
         """
         self.EPIC_API_URL = None
         self.EPIC_TOKEN = None
         if config_file is not None:
-            self._load_config_file(config_file)
+            self._load_config_file(config_file, config_section)
             self._config_file = config_file
         self.EPIC_API_URL = os.environ.get("EPIC_API_ENDPOINT", self.EPIC_API_URL)
         self.EPIC_TOKEN = os.environ.get("EPIC_TOKEN", self.EPIC_TOKEN)
@@ -71,31 +71,14 @@ class EpicConfig(object):
                 "Missing EPIC URL, set EPIC_TOKEN or supply a configuration file"
             )
 
-    def _load_config_file(self, file):
-        parser = SafeConfigParser(allow_no_value=True)
+    def _load_config_file(self, file, config_section):
+        parser = ConfigParser(allow_no_value=True)
         if os.path.isfile(file):
             parser.read(file)
-            if parser.has_section("epic"):
-                self.EPIC_API_URL = parser.get("epic", "url")
-                self.EPIC_TOKEN = parser.get("epic", "token")
+            if parser.has_section(config_section):
+                self.EPIC_API_URL = parser.get(config_section, "url")
+                self.EPIC_TOKEN = parser.get(config_section, "token")
+            else:
+                raise ConfigurationException(f"Invalid EPIC configuration, cannot find section {config_section}")
         else:
-            raise ConfigurationException("Invalid EPIC configuration file %s" % file)
-
-    def write_config_file(self, file=None):
-        output_file = file if file is not None else self._config_file
-        if output_file is None:
-            raise ConfigurationException(
-                "Valid config file not specified for write_config_file"
-            )
-        config = RawConfigParser()
-        config.add_section("epic")
-        config.set("epic", "url", self.EPIC_API_URL)
-        config.set("epic", "token", self.EPIC_TOKEN)
-        config_file = os.path.expanduser(output_file)
-        try:
-            os.makedirs(os.path.dirname(config_file))
-        except OSError as e:
-            if e.errno != errno.EEXIST:
-                raise
-        with open(config_file, "w") as configfile:
-            config.write(configfile)
+            raise ConfigurationException(f"Invalid EPIC configuration file {file}")

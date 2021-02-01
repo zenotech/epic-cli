@@ -54,8 +54,9 @@ def format_localised_currency(data):
 
 @click.group()
 @click.pass_context
-@click.option("--config", help="Configuration file to load (default is ~/.epic/config)")
-def main(ctx, config):
+@click.option('-c', "--config", help="Configuration file to load (default is ~/.epic/config)")
+@click.option('-p', "--profile", help="Load the named profile from the configuration file", default="default", show_default=True)
+def main(ctx, config, profile):
     """CLI for communicating with the EPIC"""
     click.echo(pyfiglet.Figlet().renderText("EPIC by Zenotech"))
 
@@ -73,7 +74,7 @@ def main(ctx, config):
     try:
         click.echo("Loading config from %s" % config_file)
         
-        config = EpicConfig(config_file=config_file)
+        config = EpicConfig(config_file=config_file, config_section=profile)
 
         # V2 API Client
         epic = EPICClient(
@@ -97,12 +98,12 @@ def configure(ctx):
     config_file = os.path.join(Path.home(), '.epic', 'config')
     if os.path.isfile(config_file):
         try:
-            click.echo("loading")
             config = EpicConfig(config_file=config_file)
             default_url = config.EPIC_API_URL
             default_token = config.EPIC_TOKEN
         except ConfigurationException as e:
             pass
+    
     epic_url = click.prompt(
         "Please enter the EPIC Url to connect to", default=default_url
     )
@@ -111,11 +112,18 @@ def configure(ctx):
         "Please enter your EPIC API token", default=default_token
     )
 
-    config = configparser.RawConfigParser()
-    config.add_section("epic")
-    config.set("epic", "url", epic_url)
-    config.set("epic", "token", token)
+    profile = click.prompt(
+        "Name of profile to store", default='default'
+    )
+
+    config = configparser.ConfigParser()
     config_file = os.path.expanduser(config_file)
+    if os.path.isfile(config_file):
+        config.read(config_file)
+    if not config.has_section(profile):
+        config.add_section(profile)
+    config.set(profile, "url", epic_url)
+    config.set(profile, "token", token)
     try:
         os.makedirs(os.path.dirname(config_file))
     except OSError as e:
