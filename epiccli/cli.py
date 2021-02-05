@@ -304,7 +304,7 @@ def sync(ctx, source, destination, dryrun, overwrite):
             return
         if not check_path_is_folder(destination):
             click.echo(
-                "Destination does appear to be a folder, please specify a folder for the destination"
+                "Destination does not appear to be a folder, please specify a folder for the destination"
             )
             return
         click.echo("Synchronising from {} to {} {}".format(source, destination, "(dryrun)" if dryrun else ""))
