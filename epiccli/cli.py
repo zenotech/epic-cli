@@ -42,7 +42,7 @@ from pyepic.client import EPICClient
 
 from .core import EpicConfig
 from .path import check_path_is_folder
-from .exceptions import ConfigurationException
+from .exceptions import ConfigurationException, CommandError
 
 
 DEFAULT_URL = "https://epic.zenotech.com"
@@ -328,7 +328,7 @@ def list(ctx, n):
     """List active jobs"""
     click.echo("Your EPIC HPC Jobs")
     click.echo("Job ID | Name | Application | Submitted by | Submitted | Status ")
-    click.echo("-----------------------------------------")
+    click.echo("----------------------------------------------------------------")
     jlist = ctx.obj[1].job.list(limit=n)
     for job in jlist:
         click.echo(
@@ -352,6 +352,44 @@ def details(ctx, job_id):
     """Get details of job ID"""
     pprint.pprint(ctx.obj[1].job.get_details(job_id))
 
+
+@job.command()
+@click.pass_context
+@click.argument("job_id")
+def steps(ctx, job_id):
+    """List the status of the job steps"""
+    click.echo(f"Job Steps for Job ID {job_id}")
+    click.echo("Step ID | Step Name | Status | Start | End | Wallclock | Exit Code")
+    click.echo("------------------------------------------------------------------")
+    details = ctx.obj[1].job.get_details(job_id)
+    for step in details.job_steps:
+        click.echo(f"{step.id} | {step.step_name} | {step.status} | {step.start} | {step.end} | {step.wallclock} | {step.exit_code}")
+    
+@job.command()
+@click.pass_context
+@click.argument("step_id")
+@click.option(
+    "-u",
+    "--update",
+    help="Request an update to the tail of the logs",
+    is_flag=True,
+)
+@click.option('--log',
+              type=click.Choice(['stdout', 'stderr', 'app'], case_sensitive=False),
+              default='app', help="Which log file to tail",  show_default=True,)
+def tail(ctx, step_id, update, log):
+    """Get job log tail of step ID of job ID"""
+    log_tail = ctx.obj[1].job.get_step_logs(step_id)
+    click.echo(f"Tail of \"{log}\" log for Job Step {step_id} (last update {log_tail.last_update})")
+    click.echo("-------------------------------------------------------------------------")
+    if log == 'app':
+        click.echo(log_tail.app)
+    elif log == 'stderr':
+        click.echo(log_tail.stderr)
+    elif log == 'stdout':
+        click.echo(log_tail.stdout)
+    else:
+        raise CommandError("Unknown log specified")
 
 @main.group()
 @click.pass_context
