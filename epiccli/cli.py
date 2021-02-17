@@ -368,16 +368,10 @@ def steps(ctx, job_id):
 @job.command()
 @click.pass_context
 @click.argument("step_id")
-@click.option(
-    "-u",
-    "--update",
-    help="Request an update to the tail of the logs",
-    is_flag=True,
-)
 @click.option('--log',
               type=click.Choice(['stdout', 'stderr', 'app'], case_sensitive=False),
-              default='app', help="Which log file to tail",  show_default=True,)
-def tail(ctx, step_id, update, log):
+              default='stdout', help="Which log file to tail",  show_default=True,)
+def tail(ctx, step_id, log):
     """Get job log tail of step ID of job ID"""
     log_tail = ctx.obj[1].job.get_step_logs(step_id)
     click.echo(f"Tail of \"{log}\" log for Job Step {step_id} (last update {log_tail.last_update})")
@@ -390,6 +384,7 @@ def tail(ctx, step_id, update, log):
         click.echo(log_tail.stdout)
     else:
         raise CommandError("Unknown log specified")
+
 
 @main.group()
 @click.pass_context
