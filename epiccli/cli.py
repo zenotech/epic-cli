@@ -122,6 +122,8 @@ def configure(ctx):
         config.read(config_file)
     if not config.has_section(profile):
         config.add_section(profile)
+    if epic_url.endswith('/'):
+        epic_url = epic_url[:-1]
     config.set(profile, "url", epic_url)
     config.set(profile, "token", token)
     try:
