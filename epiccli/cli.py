@@ -419,14 +419,14 @@ def list(ctx):
     """List your available EPIC clusters"""
     click.echo("Your available EPIC HPC queues")
     click.echo(
-        "ID | Cluster Name | Queue Name | CPU Type | GPU Type | Total CPU Cores "
+        "Queue Code | Cluster Name | Queue Name | CPU Type | GPU Type | Total CPU Cores "
     )
     click.echo("-----------------------------------------")
     qlist = ctx.obj[1].catalog.list_clusters()
     for queue in qlist:
         click.echo(
             "{} | {} | {} | {} | {} | {}".format(
-                queue.id,
+                queue.queue_code,
                 queue.name,
                 queue.cluster_name,
                 queue.resource_config.cpu_generation,
@@ -447,6 +447,34 @@ def details(ctx, id):
     click.echo("-----------------------------------------")
     queue_details = ctx.obj[1].catalog.queue_details(id)
     pprint.pprint(queue_details)
+
+
+@main.group()
+@click.pass_context
+def apps(ctx):
+    """  Application Management """
+    pass
+
+@apps.command()
+@click.pass_context
+def list(ctx):
+    """List your available EPIC applications"""
+    click.echo("Your available EPIC application versions")
+    click.echo(
+        "App Code | Product Name | Version | Available on cluster code"
+    )
+    click.echo("-------------------------------------------------")
+    alist = ctx.obj[1].catalog.list_applications()
+    for app in alist:
+        for version in app.versions:
+            click.echo(
+                "{} | {} | {} | {}".format(
+                    version.app_code,
+                    app.product.name,
+                    version.version,
+                    version.available_on,
+                )
+            )
 
 
 if __name__ == "__main__":
