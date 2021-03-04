@@ -39,6 +39,8 @@ import json
 import configparser
 from pathlib import Path
 from pyepic.client import EPICClient
+from pyepic.applications.openfoam import OpenFoamJob
+from pyepic.applications.zcfd import ZCFDJob
 
 from .core import EpicConfig
 from .path import check_path_is_folder
@@ -387,6 +389,91 @@ def tail(ctx, step_id, log):
     else:
         raise CommandError("Unknown log specified")
 
+
+@job.group()
+@click.pass_context
+def create(ctx):
+    """Create a job"""
+    pass
+
+
+@create.command()
+@click.pass_context
+@click.argument("job_name")
+@click.argument("foam_version")
+@click.argument("queue_code")
+@click.argument("input_folder")
+@click.option('--np', default=1, help="Number of partitions for the solver", show_default=True)
+@click.option('--cycles', default=0, help="Number of cycles to run the solver for, 0 to take value from controlDict", show_default=True)
+@click.option('--decompose/--no-decompose', ' /-D', default=True, help="Run decomposePar", show_default=True)
+@click.option('--solve/--no-solve', ' /-S', help="Run the solver", default=True, show_default=True)
+@click.option('--reconstruct/--no-reconstruct', ' /-R', help="Run reconstructPar", default=True, show_default=True)
+@click.option('--rs', default=1, help="Maximum solver runtime in hours",  show_default=True)
+@click.option('--rd', default=1, help="Maximum decomposePar runtime in hours",  show_default=True)
+@click.option('--rr', default=1, help="Maximum reconstructPar runtime in hours",  show_default=True)
+def openfoam(ctx, job_name, foam_version, queue_code, input_folder, np, cycles, decompose, solve, reconstruct, rs, rd, rr):
+    """Create a new OpenFoam job.
+    
+    Create a job called JOB_NAME using foam version FOAM_VERSION and run it on EPIC queue QUEUE_CODE.
+    The data for the case should already have been uploaded to INPUT_FOLDER on EPIC.
+    """
+    click.echo(f"Creating OpenFoam job {job_name}")
+    click.echo("----------------------------------")
+    job = OpenFoamJob(foam_version, job_name, input_folder)
+
+    job.decomposePar.execute = decompose
+    job.decomposePar.runtime = rd
+
+    job.solver.execute = solve
+    job.solver.partitions = np
+    job.solver.runtime = rs
+    job.solver.endTime = cycles
+
+    job.reconstructPar.execute = reconstruct
+    job.reconstructPar.runtime = rr
+
+    click.echo(f"Submitting to {queue_code}...")
+    job_spec = job.get_job_create_spec(queue_code)
+
+    # Submit the job
+    job = ctx.obj[1].job.submit(job_spec)
+
+    click.echo(f"Job {job_name} submitted. New job ID = {job[0].id}")
+
+
+@create.command()
+@click.pass_context
+@click.argument("job_name")
+@click.argument("zcfd_version")
+@click.argument("queue_code")
+@click.argument("input_folder")
+@click.option('--np', default=1, help="Number of partitions for the solver", show_default=True)
+@click.option('--r', default=1, help="Maximum solver runtime in hours",  show_default=True)
+@click.option('--cycles', default=1000, help="Number of cycles to run the solver for", show_default=True)
+@click.option('--p', help="Problem name, the name of the hdf5 file containing the mesh")
+@click.option('--c', help="Case name, the name of the python control file")
+@click.option('--restart/--no-restart', help="Is the run a restart?", default=False)
+
+def zcfd(ctx, job_name, zcfd_version, queue_code, input_folder, np, r, cycles, p, c, restart):
+    """Create a new zCFD job.
+    
+    Create a job called JOB_NAME using foam version ZCFD_VERSION and run it on EPIC queue QUEUE_CODE.
+    The data for the case should already have been uploaded to INPUT_FOLDER on EPIC.
+    """
+    click.echo(f"Creating zCFDFoam job {job_name}")
+    click.echo("----------------------------------")
+
+    job = ZCFDJob(zcfd_version, job_name, input_folder, c, p, cycles=cycles, restart=restart, partitions=np)
+
+    job.zcfd.runtime = r 
+
+    click.echo(f"Submitting to {queue_code}...")
+    job_spec = job.get_job_create_spec(queue_code)
+   
+    # Submit the job
+    job = ctx.obj[1].job.submit(job_spec)
+
+    click.echo(f"Job {job_name} submitted. New job ID = {job[0].id}")
 
 @main.group()
 @click.pass_context
