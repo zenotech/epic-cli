@@ -83,7 +83,10 @@ def main(ctx, config, profile):
             connection_token=config.EPIC_TOKEN,
             connection_url="{}/api/v2".format(config.EPIC_API_URL),
         )
+        # Set the data source for file meta-data
+        epic.data.meta_source = "CLI"
 
+        # Store the config and SDK client in CLI context
         ctx.obj = (config, epic)
     except ConfigurationException:
         click.echo("Configuration file not found or invalid, please run configure.")
