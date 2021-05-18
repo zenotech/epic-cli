@@ -41,6 +41,8 @@ from pathlib import Path
 from pyepic.client import EPICClient
 from pyepic.applications.openfoam import OpenFoamJob
 from pyepic.applications.zcfd import ZCFDJob
+from pyepic.desktops import Desktop
+from pyepic.desktops.desktop import MountType
 
 from .core import EpicConfig
 from .path import check_path_is_folder
@@ -56,8 +58,16 @@ def format_localised_currency(data):
 
 @click.group()
 @click.pass_context
-@click.option('-c', "--config", help="Configuration file to load (default is ~/.epic/config)")
-@click.option('-p', "--profile", help="Load the named profile from the configuration file", default="default", show_default=True)
+@click.option(
+    "-c", "--config", help="Configuration file to load (default is ~/.epic/config)"
+)
+@click.option(
+    "-p",
+    "--profile",
+    help="Load the named profile from the configuration file",
+    default="default",
+    show_default=True,
+)
 def main(ctx, config, profile):
     """CLI for communicating with the EPIC"""
     click.echo(pyfiglet.Figlet().renderText("EPIC by Zenotech"))
@@ -66,7 +76,7 @@ def main(ctx, config, profile):
     if ctx.invoked_subcommand == "configure":
         return
 
-    config_file = os.path.join(Path.home(), '.epic', 'config')
+    config_file = os.path.join(Path.home(), ".epic", "config")
     if config is not None:
         if os.path.isfile(os.path.expanduser(config)):
             config_file = os.path.expanduser(config)
@@ -75,7 +85,7 @@ def main(ctx, config, profile):
             exit(1)
     try:
         click.echo("Loading config from %s" % config_file)
-        
+
         config = EpicConfig(config_file=config_file, config_section=profile)
 
         # V2 API Client
@@ -100,7 +110,7 @@ def configure(ctx):
     click.echo("Configuring EPIC Cli")
     default_url = DEFAULT_URL
     default_token = ""
-    config_file = os.path.join(Path.home(), '.epic', 'config')
+    config_file = os.path.join(Path.home(), ".epic", "config")
     if os.path.isfile(config_file):
         try:
             config = EpicConfig(config_file=config_file)
@@ -108,18 +118,14 @@ def configure(ctx):
             default_token = config.EPIC_TOKEN
         except ConfigurationException as e:
             pass
-    
+
     epic_url = click.prompt(
         "Please enter the EPIC Url to connect to", default=default_url
     )
 
-    token = click.prompt(
-        "Please enter your EPIC API token", default=default_token
-    )
+    token = click.prompt("Please enter your EPIC API token", default=default_token)
 
-    profile = click.prompt(
-        "Name of profile to store", default='default'
-    )
+    profile = click.prompt("Name of profile to store", default="default")
 
     config = configparser.ConfigParser()
     config_file = os.path.expanduser(config_file)
@@ -127,7 +133,7 @@ def configure(ctx):
         config.read(config_file)
     if not config.has_section(profile):
         config.add_section(profile)
-    if epic_url.endswith('/'):
+    if epic_url.endswith("/"):
         epic_url = epic_url[:-1]
     config.set(profile, "url", epic_url)
     config.set(profile, "token", token)
@@ -210,14 +216,17 @@ def list(ctx, epicpath):
 def delete(ctx, epicpath, dryrun):
     """Delete a file from EPIC"""
     if epicpath.endswith("/"):
-        click.echo("Deleting folder {} {}".format(epicpath, "(dryrun)" if dryrun else ""))
-        items = ctx.obj[1].data.delete(epicpath, dryrun = dryrun)
+        click.echo(
+            "Deleting folder {} {}".format(epicpath, "(dryrun)" if dryrun else "")
+        )
+        items = ctx.obj[1].data.delete(epicpath, dryrun=dryrun)
     else:
         click.echo("Deleting file {} {}".format(epicpath, "(dryrun)" if dryrun else ""))
-        items = ctx.obj[1].data.delete(epicpath, dryrun = dryrun)
+        items = ctx.obj[1].data.delete(epicpath, dryrun=dryrun)
     for item in items:
         click.echo("Deleted {} {}".format(item, "(dryrun)" if dryrun else ""))
     return
+
 
 @data.command()
 @click.pass_context
@@ -284,6 +293,7 @@ def sync_callback(source_path, target_path, uploaded):
     else:
         click.echo(f"Did not copy {source_path} to {target_path}")
 
+
 @data.command()
 @click.pass_context
 @click.argument("source")
@@ -293,10 +303,12 @@ def sync_callback(source_path, target_path, uploaded):
     help="Show what actions will take place but do not execute them",
     is_flag=True,
 )
-@click.option('--overwrite/--no-overwrite',
-              help="Overwrite existing files if last modified time is more recent in source",
-              default=True,
-              show_default=True)
+@click.option(
+    "--overwrite/--no-overwrite",
+    help="Overwrite existing files if last modified time is more recent in source",
+    default=True,
+    show_default=True,
+)
 def sync(ctx, source, destination, dryrun, overwrite):
     """Synchronise contents of SOURCE to DESTINATION.
     EPIC destinations should be prefixed with "epic://".
@@ -314,8 +326,18 @@ def sync(ctx, source, destination, dryrun, overwrite):
                 "Destination does not appear to be a folder, please specify a folder for the destination"
             )
             return
-        click.echo("Synchronising from {} to {} {}".format(source, destination, "(dryrun)" if dryrun else ""))
-        ctx.obj[1].data.sync(source, destination, dryrun=dryrun, callback=sync_callback, overwrite_existing=overwrite)
+        click.echo(
+            "Synchronising from {} to {} {}".format(
+                source, destination, "(dryrun)" if dryrun else ""
+            )
+        )
+        ctx.obj[1].data.sync(
+            source,
+            destination,
+            dryrun=dryrun,
+            callback=sync_callback,
+            overwrite_existing=overwrite,
+        )
         click.echo("Sync complete")
     except Exception as e:
         print("Sync failed, %s" % e)
@@ -330,7 +352,7 @@ def job(ctx):
 
 @job.command()
 @click.pass_context
-@click.option('--n', default=10, help="List last n jobs",  show_default=True)
+@click.option("--n", default=10, help="List last n jobs", show_default=True)
 def list(ctx, n):
     """List active jobs"""
     click.echo("Your EPIC HPC Jobs")
@@ -370,24 +392,35 @@ def steps(ctx, job_id):
     click.echo("------------------------------------------------------------------")
     details = ctx.obj[1].job.get_details(job_id)
     for step in details.job_steps:
-        click.echo(f"{step.id} | {step.step_name} | {step.status} | {step.start} | {step.end} | {step.wallclock} | {step.exit_code}")
-    
+        click.echo(
+            f"{step.id} | {step.step_name} | {step.status} | {step.start} | {step.end} | {step.wallclock} | {step.exit_code}"
+        )
+
+
 @job.command()
 @click.pass_context
 @click.argument("step_id")
-@click.option('--log',
-              type=click.Choice(['stdout', 'stderr', 'app'], case_sensitive=False),
-              default='stdout', help="Which log file to tail",  show_default=True,)
+@click.option(
+    "--log",
+    type=click.Choice(["stdout", "stderr", "app"], case_sensitive=False),
+    default="stdout",
+    help="Which log file to tail",
+    show_default=True,
+)
 def tail(ctx, step_id, log):
     """Get job log tail of step ID of job ID"""
     log_tail = ctx.obj[1].job.get_step_logs(step_id)
-    click.echo(f"Tail of \"{log}\" log for Job Step {step_id} (last update {log_tail.last_update})")
-    click.echo("-------------------------------------------------------------------------")
-    if log == 'app':
+    click.echo(
+        f'Tail of "{log}" log for Job Step {step_id} (last update {log_tail.last_update})'
+    )
+    click.echo(
+        "-------------------------------------------------------------------------"
+    )
+    if log == "app":
         click.echo(log_tail.app)
-    elif log == 'stderr':
+    elif log == "stderr":
         click.echo(log_tail.stderr)
-    elif log == 'stdout':
+    elif log == "stdout":
         click.echo(log_tail.stdout)
     else:
         raise CommandError("Unknown log specified")
@@ -406,17 +439,58 @@ def create(ctx):
 @click.argument("foam_version")
 @click.argument("queue_code")
 @click.argument("input_folder")
-@click.option('--np', default=1, help="Number of partitions for the solver", show_default=True)
-@click.option('--cycles', default=0, help="Number of cycles to run the solver for, 0 to take value from controlDict", show_default=True)
-@click.option('--decompose/--no-decompose', ' /-D', default=True, help="Run decomposePar", show_default=True)
-@click.option('--solve/--no-solve', ' /-S', help="Run the solver", default=True, show_default=True)
-@click.option('--reconstruct/--no-reconstruct', ' /-R', help="Run reconstructPar", default=True, show_default=True)
-@click.option('--rs', default=1, help="Maximum solver runtime in hours",  show_default=True)
-@click.option('--rd', default=1, help="Maximum decomposePar runtime in hours",  show_default=True)
-@click.option('--rr', default=1, help="Maximum reconstructPar runtime in hours",  show_default=True)
-def openfoam(ctx, job_name, foam_version, queue_code, input_folder, np, cycles, decompose, solve, reconstruct, rs, rd, rr):
+@click.option(
+    "--np", default=1, help="Number of partitions for the solver", show_default=True
+)
+@click.option(
+    "--cycles",
+    default=0,
+    help="Number of cycles to run the solver for, 0 to take value from controlDict",
+    show_default=True,
+)
+@click.option(
+    "--decompose/--no-decompose",
+    " /-D",
+    default=True,
+    help="Run decomposePar",
+    show_default=True,
+)
+@click.option(
+    "--solve/--no-solve", " /-S", help="Run the solver", default=True, show_default=True
+)
+@click.option(
+    "--reconstruct/--no-reconstruct",
+    " /-R",
+    help="Run reconstructPar",
+    default=True,
+    show_default=True,
+)
+@click.option(
+    "--rs", default=1, help="Maximum solver runtime in hours", show_default=True
+)
+@click.option(
+    "--rd", default=1, help="Maximum decomposePar runtime in hours", show_default=True
+)
+@click.option(
+    "--rr", default=1, help="Maximum reconstructPar runtime in hours", show_default=True
+)
+def openfoam(
+    ctx,
+    job_name,
+    foam_version,
+    queue_code,
+    input_folder,
+    np,
+    cycles,
+    decompose,
+    solve,
+    reconstruct,
+    rs,
+    rd,
+    rr,
+):
     """Create a new OpenFoam job.
-    
+
     Create a job called JOB_NAME using foam version FOAM_VERSION and run it on EPIC queue QUEUE_CODE.
     The data for the case should already have been uploaded to INPUT_FOLDER on EPIC.
     """
@@ -450,33 +524,53 @@ def openfoam(ctx, job_name, foam_version, queue_code, input_folder, np, cycles, 
 @click.argument("zcfd_version")
 @click.argument("queue_code")
 @click.argument("input_folder")
-@click.option('--np', default=1, help="Number of partitions for the solver", show_default=True)
-@click.option('--r', default=1, help="Maximum solver runtime in hours",  show_default=True)
-@click.option('--cycles', default=1000, help="Number of cycles to run the solver for", show_default=True)
-@click.option('--p', help="Problem name, the name of the hdf5 file containing the mesh")
-@click.option('--c', help="Case name, the name of the python control file")
-@click.option('--restart/--no-restart', help="Is the run a restart?", default=False)
-
-def zcfd(ctx, job_name, zcfd_version, queue_code, input_folder, np, r, cycles, p, c, restart):
+@click.option(
+    "--np", default=1, help="Number of partitions for the solver", show_default=True
+)
+@click.option(
+    "--r", default=1, help="Maximum solver runtime in hours", show_default=True
+)
+@click.option(
+    "--cycles",
+    default=1000,
+    help="Number of cycles to run the solver for",
+    show_default=True,
+)
+@click.option("--p", help="Problem name, the name of the hdf5 file containing the mesh")
+@click.option("--c", help="Case name, the name of the python control file")
+@click.option("--restart/--no-restart", help="Is the run a restart?", default=False)
+def zcfd(
+    ctx, job_name, zcfd_version, queue_code, input_folder, np, r, cycles, p, c, restart
+):
     """Create a new zCFD job.
-    
+
     Create a job called JOB_NAME using foam version ZCFD_VERSION and run it on EPIC queue QUEUE_CODE.
     The data for the case should already have been uploaded to INPUT_FOLDER on EPIC.
     """
     click.echo(f"Creating zCFDFoam job {job_name}")
     click.echo("----------------------------------")
 
-    job = ZCFDJob(zcfd_version, job_name, input_folder, c, p, cycles=cycles, restart=restart, partitions=np)
+    job = ZCFDJob(
+        zcfd_version,
+        job_name,
+        input_folder,
+        c,
+        p,
+        cycles=cycles,
+        restart=restart,
+        partitions=np,
+    )
 
-    job.zcfd.runtime = r 
+    job.zcfd.runtime = r
 
     click.echo(f"Submitting to {queue_code}...")
     job_spec = job.get_job_create_spec(queue_code)
-   
+
     # Submit the job
     job = ctx.obj[1].job.submit(job_spec)
 
     click.echo(f"Job {job_name} submitted. New job ID = {job[0].id}")
+
 
 @main.group()
 @click.pass_context
@@ -545,14 +639,13 @@ def apps(ctx):
     """  Application Management """
     pass
 
+
 @apps.command()
 @click.pass_context
 def list(ctx):
     """List your available EPIC applications"""
     click.echo("Your available EPIC application versions")
-    click.echo(
-        "App Code | Product Name | Version | Available on cluster code"
-    )
+    click.echo("App Code | Product Name | Version | Available on cluster code")
     click.echo("-------------------------------------------------")
     alist = ctx.obj[1].catalog.list_applications()
     for app in alist:
@@ -565,6 +658,87 @@ def list(ctx):
                     version.available_on,
                 )
             )
+
+
+@main.group()
+@click.pass_context
+def desktop(ctx):
+    """  Desktop Management """
+    pass
+
+
+@desktop.command()
+@click.pass_context
+def list(ctx):
+    """List your EPIC Desktop instances"""
+    click.echo("Your available EPIC Teams")
+    click.echo("ID | Status | Node Type | Launched by | Created")
+    click.echo("-----------------")
+    for desktop in ctx.obj[1].desktops.list():
+        click.echo(
+            f"{desktop.id} |  {desktop.status} | {desktop.node_type.node_code} | {desktop.launched_by} | {desktop.created.strftime('%Y-%m-%d %H:%M')}"
+        )
+
+
+@desktop.command()
+@click.pass_context
+def nodes(ctx):
+    """List the available Desktop node types"""
+    click.echo("Available EPIC Desktop node types")
+    click.echo("Node Code | Name | Description")
+    click.echo("-----------------------------")
+    for desktop in ctx.obj[1].catalog.list_desktops():
+        click.echo(f"{desktop.node_code} |  {desktop.name} | {desktop.description}")
+
+
+@desktop.command()
+@click.pass_context
+@click.argument("desktop_id")
+def details(ctx, desktop_id):
+    """Get details of Desktop ID"""
+    pprint.pprint(ctx.obj[1].desktops.get_details(desktop_id))
+
+
+@desktop.command()
+@click.pass_context
+@click.argument("data_path")
+@click.argument("node_type")
+@click.argument("runtime", type=int)
+@click.option(
+    "--online",
+    "mount_mode",
+    flag_value="online",
+    default=True,
+    show_default=True,
+    help="The DATA_PATH will be mounted directly on the Desktop and changes are automatically syncronised with EPIC",
+)
+@click.option(
+    "--offline",
+    "mount_mode",
+    flag_value="offline",
+    show_default=True,
+    help="The data in DATA_PATH will be copied to the Desktop and changes not syncronised  with EPIC.",
+)
+@click.option(
+    "--p", type=int, show_default=True, help="Launch destkop using project ID"
+)
+def launch(ctx, data_path, node_type, runtime, mount_mode, p):
+    """Launch a new desktop using node with the node_code NODE_TYPE for RUNTIME hours. Mount data at epic path DATA_PATH on the Desktop."""
+    click.echo("Launching new desktop...")
+    desktop = Desktop(data_path, node_type)
+    desktop.runtime = runtime
+    desktop.mount_type = MountType(mount_mode)
+    desktop.project_id = p
+    pprint.pprint(ctx.obj[1].desktops.launch(desktop.get_launch_spec()))
+
+
+@desktop.command()
+@click.pass_context
+@click.argument("desktop_id", type=int)
+def terminate(ctx, desktop_id):
+    """Terminate desktop ID"""
+    click.echo("Terminating desktop ID {}".format(desktop_id))
+    pprint.pprint(ctx.obj[1].desktops.terminate(desktop_id))
 
 
 if __name__ == "__main__":
