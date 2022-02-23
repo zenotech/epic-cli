@@ -37,6 +37,8 @@ import errno
 import pprint
 import json
 import configparser
+import botocore
+
 from pathlib import Path
 from pyepic.client import EPICClient
 from pyepic.applications.openfoam import OpenFoamJob
@@ -203,6 +205,23 @@ def list(ctx, epicpath):
             click.echo(f"{item.obj_path}")
     except Exception as e:
         click.echo("Error: {}".format(str(e)))
+
+
+@data.command("info")
+@click.pass_context
+@click.argument("epicpath")
+def info(ctx, epicpath):
+    """List any file meta-data from EPIC"""
+    if not epicpath.endswith("/"):
+        try:
+            meta = ctx.obj[1].data.get_file_meta_data(epicpath)
+            click.echo(meta)
+        except botocore.exceptions.ClientError as error:
+            if error.response["Error"]["Code"] == "404":
+                click.echo(f'File "{epicpath}" not found.')
+    else:
+        click.echo("Please specify a file rather than a folder")
+    return
 
 
 @data.command("rm")
