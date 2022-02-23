@@ -306,11 +306,11 @@ def upload(ctx, source, destination):
         print("Upload failed, %s" % e)
 
 
-def sync_callback(source_path, target_path, uploaded):
+def sync_callback(source_path, target_path, uploaded, dryrun):
     if uploaded:
-        click.echo(f"Copied {source_path} to {target_path}")
+        click.echo(f"Copied {source_path} to {target_path} (dryrun={dryrun})")
     else:
-        click.echo(f"Did not copy {source_path} to {target_path}")
+        click.echo(f"Did not copy {source_path} to {target_path} (dryrun={dryrun})")
 
 
 @data.command()
