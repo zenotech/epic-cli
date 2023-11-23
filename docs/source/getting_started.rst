@@ -19,3 +19,6 @@ This will pronpt you for the url of EPIC, the default will suit most cases, and 
 Next time you use EPIC Cli it will load the token from that configration file. You can override this by using the ``--config`` option to load a different configuration file.
 
 Alternatively you can supply your token directly by setting the EPIC_TOKEN environment variable.
+
+.. note::
+   API Tokens are tied to your user or to a specific team. If you use multiple teams then you will be able to geneate a token for each one and can store multiple profiles in EPIC CLI.

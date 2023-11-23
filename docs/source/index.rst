@@ -9,4 +9,5 @@ Contents
 .. toctree::
    getting_started
    commands
+   data
    faq
