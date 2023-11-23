@@ -83,4 +83,4 @@ def check_path_is_folder(path: os.path):
     if path.startswith("epic://"):
         return path.endswith("/")
     else:
-        return path.endswith(os.sep)
+        return not os.path.isfile(path)
